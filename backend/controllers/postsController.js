@@ -12,12 +12,19 @@ exports.getPosts = async (req, res) => {
 
 // Tạo post mới
 exports.createPost = async (req, res) => {
-  const { title, content, author, category } = req.body;
   try {
-    const newPost = new Post({ title, content, author, category });
-    await newPost.save();
-    res.json(newPost);
-  } catch (error) {
-    res.status(500).json({ message: "Lỗi khi tạo post" });
-  }
+      let postsData = req.body;
+
+      if (Array.isArray(postsData)) {
+        const newPosts = await Post.insertMany(postsData);
+        return res.status(201).json(newPosts);
+      }
+
+      const newPost = new Post(postsData);
+      await newPost.save();
+      res.status(201).json(newPost);
+    } catch (error) {
+      console.error("Lỗi khi tạo bài viết:", error);
+      res.status(500).json({ message: "Lỗi khi tạo bài viết", error: error.message });
+    }
 };

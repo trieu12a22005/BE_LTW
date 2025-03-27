@@ -12,12 +12,19 @@ exports.getNews = async (req, res) => {
 
 // Tạo news mới
 exports.createNews = async (req, res) => {
-  const { title, content, author, tags } = req.body;
   try {
-    const newNews = new News({ title, content, author, tags });
-    await newNews.save();
-    res.json(newNews);
+    let newsData = req.body;
+
+    if (Array.isArray(newsData)) {
+      const newNews = await News.insertMany(newsData);
+      return res.status(201).json(newNews);
+    }
+
+    const newNewsItem = new News(newsData);
+    await newNewsItem.save();
+    res.status(201).json(newNewsItem);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi tạo news" });
+    console.error("Lỗi khi tạo tin tức:", error);
+    res.status(500).json({ message: "Lỗi khi tạo tin tức", error: error.message });
   }
 };

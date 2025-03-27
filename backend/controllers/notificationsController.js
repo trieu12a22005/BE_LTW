@@ -12,12 +12,19 @@ exports.getNotifications = async (req, res) => {
 
 // Tạo notification mới
 exports.createNotification = async (req, res) => {
-  const { userId, content, type } = req.body;
-  try {
-    const newNotification = new Notification({ userId, content, type });
+ try {
+    let notificationsData = req.body;
+
+    if (Array.isArray(notificationsData)) {
+      const newNotifications = await Notification.insertMany(notificationsData);
+      return res.status(201).json(newNotifications);
+    }
+
+    const newNotification = new Notification(notificationsData);
     await newNotification.save();
-    res.json(newNotification);
+    res.status(201).json(newNotification);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi tạo notification" });
+    console.error("Lỗi khi tạo thông báo:", error);
+    res.status(500).json({ message: "Lỗi khi tạo thông báo", error: error.message });
   }
 };

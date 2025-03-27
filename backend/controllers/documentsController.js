@@ -12,12 +12,19 @@ exports.getDocuments = async (req, res) => {
 
 // Tạo document mới
 exports.createDocument = async (req, res) => {
-  const { title, description, fileUrl, uploadedBy, type, category } = req.body;
   try {
-    const newDocument = new Document({ title, description, fileUrl, uploadedBy, type, category });
+    let documentsData = req.body;
+
+    if (Array.isArray(documentsData)) {
+      const newDocuments = await Document.insertMany(documentsData);
+      return res.status(201).json(newDocuments);
+    }
+
+    const newDocument = new Document(documentsData);
     await newDocument.save();
-    res.json(newDocument);
+    res.status(201).json(newDocument);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi tạo document" });
+    console.error("Lỗi khi tạo tài liệu:", error);
+    res.status(500).json({ message: "Lỗi khi tạo tài liệu", error: error.message });
   }
 };

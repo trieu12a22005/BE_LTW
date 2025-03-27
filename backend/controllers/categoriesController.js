@@ -12,12 +12,19 @@ exports.getCategories = async (req, res) => {
 
 // Tạo category mới
 exports.createCategory = async (req, res) => {
-  const { name, type, description } = req.body;
-  try {
-    const newCategory = new Category({ name, type, description });
+ try {
+    let categoriesData = req.body;
+
+    if (Array.isArray(categoriesData)) {
+      const newCategories = await Category.insertMany(categoriesData);
+      return res.status(201).json(newCategories);
+    }
+
+    const newCategory = new Category(categoriesData);
     await newCategory.save();
-    res.json(newCategory);
+    res.status(201).json(newCategory);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi tạo category" });
+    console.error("Lỗi khi tạo danh mục:", error);
+    res.status(500).json({ message: "Lỗi khi tạo danh mục", error: error.message });
   }
 };

@@ -12,13 +12,22 @@ exports.getUsers = async (req, res) => {
 
 // Tạo user mới
 exports.createUser = async (req, res) => {
-  const { username, email, password, role, fullName } = req.body;
   try {
-    const newUser = new User({ username, email, password, role, fullName });
+    let usersData = req.body;
+
+    // Kiểm tra nếu req.body là một mảng (đang gửi nhiều user)
+    if (Array.isArray(usersData)) {
+      const newUsers = await User.insertMany(usersData);
+      return res.status(201).json(newUsers);
+    }
+
+    // Nếu chỉ là một object (tạo một user duy nhất)
+    const newUser = new User(usersData);
     await newUser.save();
-    res.json(newUser);
+    res.status(201).json(newUser);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi tạo user" });
+    console.error("Lỗi khi tạo user:", error);
+    res.status(500).json({ message: "Lỗi khi tạo user", error: error.message });
   }
 };
 
