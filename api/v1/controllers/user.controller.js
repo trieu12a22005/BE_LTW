@@ -7,7 +7,7 @@ const sendMailHelper = require("../../../helpers/sendMail");
 
 module.exports.register = async (req, res) => {
   try {
-    const { username, fullName, email, password, role } = req.body;
+    const { username, fullName, email, password, birthday, phone, role } = req.body;
 
     console.log("Dữ liệu nhận được:", req.body); // ✅ Log kiểm tra dữ liệu
 
@@ -28,6 +28,8 @@ module.exports.register = async (req, res) => {
       email,
       role,
       password: hashedPassword, // ✅ Lưu mật khẩu đã mã hóa
+      birthday,
+      phone
     });
 
     await user.save();
@@ -53,6 +55,7 @@ module.exports.register = async (req, res) => {
 module.exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(email)
     const user = await User.findOne({ email, deleted: false });
     if (!user) {
       return res.status(400).json({ message: "Email không tồn tại!" });
@@ -161,8 +164,11 @@ module.exports.detailUser = async (req, res) => {
     res.json({
       fullName: user.fullName,
       email: user.email,
-      birth: user.birth,
+      birthday: user.birthday,
       role: user.role,
+      phone: user.phone,
+      password: user.password,
+      username: user.username
     });
   } catch (error) {
     res.status(500).json({ message: "Lỗi server", error: error.message });
@@ -179,4 +185,4 @@ module.exports.logout = async (req, res) => {
   });
 
   res.json({ code: 200, message: "Đã logout và cookie đã bị xóa!" });
-}; 
+};
