@@ -4,7 +4,31 @@ const jwt = require("jsonwebtoken");
 const generateHelper = require("../../../helpers/generate");
 const ForgotPassword = require("../models/forgot-pasword.model");
 const sendMailHelper = require("../../../helpers/sendMail");
+const express = require("express");
+const multer = require("multer");
+const { createClient } = require("@supabase/supabase-js");
+const fs = require("fs");
+const path = require("path");
+// Cấu hình Supabase
+const SUPABASE_URL = "https://jcrxndjvwrxpuntjwkze.supabase.co";
+const SUPABASE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcnhuZGp2d3J4cHVudGp3a3plIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyODI5MTEsImV4cCI6MjA1ODg1ODkxMX0.3ld5pFFuF0FqWf5jR1Qe4hWOHLtBEYRx4udi1RHSF5c";
+const BUCKET_NAME = "uitstudyshare"; // ✅ Đảm bảo tên bucket đúng
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Cấu hình Multer để lưu file tạm thời
+const upload = multer({ dest: "uploads/" });
+
+// Danh sách MIME types hợp lệ
+const allowedMIMETypes = [
+  "application/pdf",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
 module.exports.register = async (req, res) => {
   try {
     const { username, fullName, email, password, birthday, phone, role } =
@@ -117,28 +141,49 @@ module.exports.resetPassword = async (req, res) => {
 };
 module.exports.changePassword = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    const oldPassword = req.body.oldPassword;
-    const newPassword = req.body.newPassword;
-    const userId = decoded.userId;
-    const user = await User.findOne({ _id: userId });
-
-    if (!user) {
-      return res.json({ code: 400, message: "User không tồn tại" });
+    if (!req.file) {
+      return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
     }
 
-    const isSamePassword = await bcrypt.compare(oldPassword, user.password);
-    if (!isSamePassword) {
-      return res.json({ code: 400, message: "Mật khẩu không đúng" });
+    // Kiểm tra loại file có hợp lệ không
+    if (!allowedMIMETypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        error: "Chỉ cho phép upload file PDF, PPT, PPTX, JPG, PNG, GIF, WEBP.",
+      });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await User.updateOne({ _id: userId }, { password: hashedPassword });
+    const filePath = req.file.path;
+    const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
+    const fileBuffer = fs.readFileSync(filePath);
 
-    res.json({ code: 200, message: "Cập nhật mật khẩu thành công" });
+    // Upload file lên Supabase Storage
+    const { data, error } = await supabase.storage
+      .from("uploads") // Thay "uploads" bằng tên bucket của bạn trên Supabase
+      .upload(fileName, fileBuffer, {
+        contentType: req.file.mimetype,
+      });
+
+    if (error) {
+      console.error("Lỗi upload:", error);
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi upload file lên Supabase." });
+    }
+
+    // Xóa file tạm sau khi upload
+    fs.unlinkSync(filePath);
+
+    // Lấy URL file từ Supabase
+    const fileUrl = `${SUPABASE_URL}/storage/v1/object/public/uploads/${fileName}`;
+
+    res.status(200).json({
+      message: "Upload thành công!",
+      fileName,
+      downloadURL: fileUrl,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    console.error("Lỗi upload file:", error);
+    res.status(500).json({ error: "Lỗi khi upload file" });
   }
 };
 module.exports.forgotPassword = async (req, res) => {
@@ -214,7 +259,6 @@ module.exports.detailUser = async (req, res) => {
   }
 };
 module.exports.upDateInfo = async (req, res) => {
-  const updateData = req.body;
   console.log(req.user.userId);
   delete updateData.password;
   delete updateData.email;
@@ -235,6 +279,54 @@ module.exports.upDateInfo = async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };
+module.exports.upload = async (req, res) => {
+  try {
+      if (!req.file) {
+          return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
+      }
+
+      // Kiểm tra loại file có hợp lệ không
+      if (!allowedMIMETypes.includes(req.file.mimetype)) {
+          return res.status(400).json({ error: "Chỉ cho phép upload file PDF, PPT, PPTX, JPG, PNG, GIF, WEBP." });
+      }
+
+      const filePath = req.file.path;
+      const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
+      const fileStream = fs.createReadStream(filePath);  // Dùng file stream thay vì buffer
+
+      // Upload file lên Supabase Storage
+      const { data, error } = await supabase.storage
+          .from("uitstudyshare")  // ✅ Sử dụng đúng bucket
+          .upload(fileName, fileStream, {
+              contentType: req.file.mimetype,
+              duplex: "half"
+          });
+
+      if (error) {
+          console.error("Lỗi upload:", error);
+          return res.status(500).json({ error: "Lỗi khi upload file lên Supabase." });
+      }
+
+      // Lấy URL file từ Supabase
+      const { data: publicUrlData } = supabase.storage.from("uitstudyshare").getPublicUrl(fileName);
+      const fileUrl = publicUrlData.publicUrl;
+
+      // Chỉ xóa file tạm sau khi upload thành công
+      fs.unlinkSync(filePath);
+
+      res.status(200).json({
+          message: "Upload thành công!",
+          fileName,
+          downloadURL: fileUrl,  // ✅ Trả về URL file cho frontend
+      });
+
+  } catch (error) {
+      console.error("Lỗi upload file:", error);
+      res.status(500).json({ error: "Lỗi khi upload file" });
+  }
+};
+
+
 module.exports.logout = async (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,
