@@ -9,6 +9,8 @@ router.post("/password/forgot",controllers.forgotPassword);
 router.post("/password/otp",controllers.otpPassword);
 router.patch("/password/reset",controllers.resetPassword);
 router.get("/detail",verifyToken, controllers.detailUser);
-router.post("/logout",verifyToken,controllers.logout)
+router.post("/logout",verifyToken,controllers.logout);
+router.patch("/password/change", verifyToken, controllers.changePassword)
+router.patch("/update",verifyToken, controllers.upDateInfo);
 module.exports = router;
 
