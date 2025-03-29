@@ -10,5 +10,6 @@ router.post("/password/otp",controllers.otpPassword);
 router.patch("/password/reset",controllers.resetPassword);
 router.get("/detail",verifyToken, controllers.detailUser);
 router.post("/logout",verifyToken,controllers.logout)
+router.patch("/password/change", verifyToken, controllers.changePassword)
 module.exports = router;
 

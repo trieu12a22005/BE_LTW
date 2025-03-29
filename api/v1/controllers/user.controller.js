@@ -107,7 +107,32 @@ module.exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };
+module.exports.changePassword = async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const oldPassword = req.body.oldPassword;
+    const newPassword = req.body.newPassword
+    const userId = decoded.userId;
+    const user = await User.findOne({ _id: userId });
 
+    if (!user) {
+      return res.json({ code: 400, message: "User không tồn tại" });
+    }
+
+    const isSamePassword = await bcrypt.compare(oldPassword, user.password); 
+    if (!isSamePassword) {
+      return res.json({ code: 400, message: "Mật khẩu không đúng" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10); 
+    await User.updateOne({ _id: userId }, { password: hashedPassword });
+
+    res.json({ code: 200, message: "Cập nhật mật khẩu thành công" });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+};
 module.exports.forgotPassword = async (req, res) => {
   try {
     const email = req.body.email;
