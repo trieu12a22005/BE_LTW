@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const generateHelper = require("../../../helpers/generate");
 const ForgotPassword = require("../models/forgot-pasword.model");
 const sendMailHelper = require("../../../helpers/sendMail");
+const Document = require("../models/document.model")
 const express = require("express");
 const multer = require("multer");
 const { createClient } = require("@supabase/supabase-js");
@@ -281,6 +282,8 @@ module.exports.upDateInfo = async (req, res) => {
 };
 module.exports.upload = async (req, res) => {
   try {
+    const {title, description, type,Subject} = req.body;
+    const user = await User.findOne({ _id: req.user.userId, deleted: false });
       if (!req.file) {
           return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
       }
@@ -306,18 +309,26 @@ module.exports.upload = async (req, res) => {
           console.error("Lỗi upload:", error);
           return res.status(500).json({ error: "Lỗi khi upload file lên Supabase." });
       }
-
       // Lấy URL file từ Supabase
       const { data: publicUrlData } = supabase.storage.from("uitstudyshare").getPublicUrl(fileName);
       const fileUrl = publicUrlData.publicUrl;
-
+      const document = new Document({
+        title, 
+        description, 
+        type,
+        Subject,
+        fileUrl,
+        uploadedBy:user.username
+      });
+  
+      await document.save();
+      console.log("User đã tạo:", user);
       // Chỉ xóa file tạm sau khi upload thành công
       fs.unlinkSync(filePath);
 
       res.status(200).json({
           message: "Upload thành công!",
-          fileName,
-          downloadURL: fileUrl,  // ✅ Trả về URL file cho frontend
+          document
       });
 
   } catch (error) {
