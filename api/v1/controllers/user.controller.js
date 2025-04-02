@@ -4,32 +4,6 @@ const jwt = require("jsonwebtoken");
 const generateHelper = require("../../../helpers/generate");
 const ForgotPassword = require("../models/forgot-pasword.model");
 const sendMailHelper = require("../../../helpers/sendMail");
-const Document = require("../models/document.model")
-const express = require("express");
-const multer = require("multer");
-const { createClient } = require("@supabase/supabase-js");
-const fs = require("fs");
-const path = require("path");
-// Cấu hình Supabase
-const SUPABASE_URL = "https://jcrxndjvwrxpuntjwkze.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcnhuZGp2d3J4cHVudGp3a3plIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyODI5MTEsImV4cCI6MjA1ODg1ODkxMX0.3ld5pFFuF0FqWf5jR1Qe4hWOHLtBEYRx4udi1RHSF5c";
-const BUCKET_NAME = "uitstudyshare"; // ✅ Đảm bảo tên bucket đúng
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// Cấu hình Multer để lưu file tạm thời
-const upload = multer({ dest: "uploads/" });
-
-// Danh sách MIME types hợp lệ
-const allowedMIMETypes = [
-  "application/pdf",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-];
 module.exports.register = async (req, res) => {
   try {
     const { username, fullName, email, password, birthday, phone, role } =
@@ -280,64 +254,6 @@ module.exports.upDateInfo = async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };
-module.exports.upload = async (req, res) => {
-  try {
-    const {title, description, type,Subject} = req.body;
-    const user = await User.findOne({ _id: req.user.userId, deleted: false });
-      if (!req.file) {
-          return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
-      }
-
-      // Kiểm tra loại file có hợp lệ không
-      if (!allowedMIMETypes.includes(req.file.mimetype)) {
-          return res.status(400).json({ error: "Chỉ cho phép upload file PDF, PPT, PPTX, JPG, PNG, GIF, WEBP." });
-      }
-
-      const filePath = req.file.path;
-      const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
-      const fileStream = fs.createReadStream(filePath);  // Dùng file stream thay vì buffer
-
-      // Upload file lên Supabase Storage
-      const { data, error } = await supabase.storage
-          .from("uitstudyshare")  // ✅ Sử dụng đúng bucket
-          .upload(fileName, fileStream, {
-              contentType: req.file.mimetype,
-              duplex: "half"
-          });
-
-      if (error) {
-          console.error("Lỗi upload:", error);
-          return res.status(500).json({ error: "Lỗi khi upload file lên Supabase." });
-      }
-      // Lấy URL file từ Supabase
-      const { data: publicUrlData } = supabase.storage.from("uitstudyshare").getPublicUrl(fileName);
-      const fileUrl = publicUrlData.publicUrl;
-      const document = new Document({
-        title, 
-        description, 
-        type,
-        Subject,
-        fileUrl,
-        uploadedBy:user.username
-      });
-  
-      await document.save();
-      console.log("User đã tạo:", user);
-      // Chỉ xóa file tạm sau khi upload thành công
-      fs.unlinkSync(filePath);
-
-      res.status(200).json({
-          message: "Upload thành công!",
-          document
-      });
-
-  } catch (error) {
-      console.error("Lỗi upload file:", error);
-      res.status(500).json({ error: "Lỗi khi upload file" });
-  }
-};
-
-
 module.exports.logout = async (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,

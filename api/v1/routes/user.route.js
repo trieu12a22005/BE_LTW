@@ -17,7 +17,5 @@ router.get("/detail",verifyToken, controllers.detailUser);
 router.post("/logout",verifyToken,controllers.logout)
 router.patch("/password/change", verifyToken, controllers.changePassword)
 router.patch("/update",verifyToken, controllers.upDateInfo);
-// Route upload file
-router.post("/upload", verifyToken, upload.single("file"), controllers.upload);
 module.exports = router;
 
