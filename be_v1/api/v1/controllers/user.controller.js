@@ -36,10 +36,8 @@ module.exports.register = async (req, res) => {
     console.log("User đã tạo:", user);
 
     // ✅ Tạo JWT token
-    const token = jwt.sign(
-      { userId: user._id}, 
-      process.env.SECRET_KEY, 
-      { expiresIn: "7d",
+    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
+      expiresIn: "7d",
     });
 
     // ✅ Lưu token vào cookie
@@ -70,11 +68,9 @@ module.exports.login = async (req, res) => {
       return res.status(400).json({ code: 400, message: "Sai mật khẩu" });
     }
 
-    const token = jwt.sign(
-      { userId: user._id}, 
-      process.env.SECRET_KEY, 
-      { expiresIn: "7d",}
-    );
+    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
+      expiresIn: "7d",
+    });
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -203,11 +199,9 @@ module.exports.otpPassword = async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    const token = jwt.sign(
-      { userId: user._id}, 
-      process.env.SECRET_KEY, 
-      { expiresIn: "10m",}
-    );
+    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
+      expiresIn: "10m",
+    });
 
     res.cookie("token", token, {
       httpOnly: true,

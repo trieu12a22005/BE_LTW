@@ -135,7 +135,7 @@ module.exports.editDoc = async(req,res) => {
     )
     if (!doc_id)
     {
-      res.status(400).json({
+      return res.status(400).json({
         message: "Không có id tài liệu"
       })
     }
@@ -147,13 +147,13 @@ module.exports.editDoc = async(req,res) => {
         message: "Không tìm thấy tài liệu"
       });
     }
-    if (user_id.username !== document.uploadedBy && user_id.role!=="admin")
+    if (user.username !== document.uploadedBy && user.role!=="admin")
     {
-      res.status(400).json({
+      return res.status(400).json({
         message: "Bạn không có quyền chỉnh sửa tài liệu này"
       })
     }
-    const updatedDoc = await Menu.findByIdAndUpdate(doc_id, updateData, {
+    const updatedDoc = await Document.findByIdAndUpdate(doc_id, updateData, {
       new: true, // Trả về dữ liệu sau khi cập nhật
       runValidators: true, // Kiểm tra validation của schema
     });
@@ -165,7 +165,7 @@ module.exports.editDoc = async(req,res) => {
     }
     res.json({
       code: 200,
-      message: "Cập nhật món ăn thành công",
+      message: "Cập nhật thành công",
       updatedDoc,
     });
 
@@ -177,14 +177,14 @@ module.exports.editDoc = async(req,res) => {
 module.exports.deleteDoc = async(req,res) =>{
   try{
     const doc_id = req.params.id;
-    const user_id = req.body.user_id;
+    const user_id = req.body.userId;
     const updateData = req.body;
     const user =  await User.findById(
       user_id
     )
     if (!doc_id)
     {
-      res.status(400).json({
+      return res.status(400).json({
         message: "Không có id tài liệu"
       })
     }
@@ -205,7 +205,7 @@ module.exports.deleteDoc = async(req,res) =>{
     const DeleteDoc = await Document.findByIdAndDelete(doc_id);
     if (!DeleteDoc)
     {
-      res.status(400).json({
+      return res.status(400).json({
         message:"Không tìm thấy tài liệu đã xóa"
       })
     }

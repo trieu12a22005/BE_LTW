@@ -5,7 +5,7 @@ const verifyToken = require("../../../validate/verifyToken")
 const checkAdmin = require("../../../validate/checkAdmin")
 const router =  express.Router()
 
-router.get("/getAll", controllers.getPost);
+router.get("", controllers.getPost);
 router.post("/create", verifyToken, controllers.createPost);
 router.get("/getByCheck/:status", controllers.getPostByCheck);
 router.patch("/update/:idPost/check", checkAdmin, controllers.updatePostCheck);
