@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 const generateHelper = require("../../../helpers/generate");
 const ForgotPassword = require("../models/forgot-pasword.model");
 const sendMailHelper = require("../../../helpers/sendMail");
-
 module.exports.register = async (req, res) => {
   try {
     const { username, fullName, email, password, birthday, phone, role } =
@@ -37,8 +36,10 @@ module.exports.register = async (req, res) => {
     console.log("User đã tạo:", user);
 
     // ✅ Tạo JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
-      expiresIn: "7d",
+    const token = jwt.sign(
+      { userId: user._id}, 
+      process.env.SECRET_KEY, 
+      { expiresIn: "7d",
     });
 
     // ✅ Lưu token vào cookie
@@ -69,9 +70,11 @@ module.exports.login = async (req, res) => {
       return res.status(400).json({ code: 400, message: "Sai mật khẩu" });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign(
+      { userId: user._id}, 
+      process.env.SECRET_KEY, 
+      { expiresIn: "7d",}
+    );
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -117,28 +120,49 @@ module.exports.resetPassword = async (req, res) => {
 };
 module.exports.changePassword = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    const oldPassword = req.body.oldPassword;
-    const newPassword = req.body.newPassword;
-    const userId = decoded.userId;
-    const user = await User.findOne({ _id: userId });
-
-    if (!user) {
-      return res.json({ code: 400, message: "User không tồn tại" });
+    if (!req.file) {
+      return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
     }
 
-    const isSamePassword = await bcrypt.compare(oldPassword, user.password);
-    if (!isSamePassword) {
-      return res.json({ code: 400, message: "Mật khẩu không đúng" });
+    // Kiểm tra loại file có hợp lệ không
+    if (!allowedMIMETypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        error: "Chỉ cho phép upload file PDF, PPT, PPTX, JPG, PNG, GIF, WEBP.",
+      });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await User.updateOne({ _id: userId }, { password: hashedPassword });
+    const filePath = req.file.path;
+    const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
+    const fileBuffer = fs.readFileSync(filePath);
 
-    res.json({ code: 200, message: "Cập nhật mật khẩu thành công" });
+    // Upload file lên Supabase Storage
+    const { data, error } = await supabase.storage
+      .from("uploads") // Thay "uploads" bằng tên bucket của bạn trên Supabase
+      .upload(fileName, fileBuffer, {
+        contentType: req.file.mimetype,
+      });
+
+    if (error) {
+      console.error("Lỗi upload:", error);
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi upload file lên Supabase." });
+    }
+
+    // Xóa file tạm sau khi upload
+    fs.unlinkSync(filePath);
+
+    // Lấy URL file từ Supabase
+    const fileUrl = `${SUPABASE_URL}/storage/v1/object/public/uploads/${fileName}`;
+
+    res.status(200).json({
+      message: "Upload thành công!",
+      fileName,
+      downloadURL: fileUrl,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    console.error("Lỗi upload file:", error);
+    res.status(500).json({ error: "Lỗi khi upload file" });
   }
 };
 module.exports.forgotPassword = async (req, res) => {
@@ -179,9 +203,11 @@ module.exports.otpPassword = async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
-      expiresIn: "10m",
-    });
+    const token = jwt.sign(
+      { userId: user._id}, 
+      process.env.SECRET_KEY, 
+      { expiresIn: "10m",}
+    );
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -214,7 +240,6 @@ module.exports.detailUser = async (req, res) => {
   }
 };
 module.exports.upDateInfo = async (req, res) => {
-  const updateData = req.body;
   console.log(req.user.userId);
   delete updateData.password;
   delete updateData.email;

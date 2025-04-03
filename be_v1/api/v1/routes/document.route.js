@@ -1,10 +1,15 @@
 const express = require("express")
 const controllers = require("../controllers/document.controller")
-const middlewareLogin = require("../../../validate/middlewareLogin")
 const verifyToken = require("../../../validate/verifyToken")
 const router =  express.Router()
-
-router.get("/getAll", controllers.getDocuments);
-router.post("/create", verifyToken, controllers.createDocument);
-router.get("/getFilter", controllers.getDocumentsByFilter);
+const multer = require("multer");
+// Cấu hình multer
+const upload = multer({ dest: "uploads/" });
+// Route upload file
+router.post("/upload", verifyToken, upload.single("file"), controllers.upload);
+router.get("",verifyToken, controllers.listDocs);
+router.get("/detail/:id", verifyToken, controllers.detailDoc);
+router.patch("/update/:id", verifyToken, controllers.editDoc);
+router.delete("/delete/:id",verifyToken,controllers.deleteDoc)
 module.exports = router;
+
