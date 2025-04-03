@@ -91,7 +91,11 @@ module.exports.upload = async (req, res) => {
 };
 module.exports.listDocs = async(req,res) =>{
 try{
-  const document = await Document.find();
+  const document = await Document.find(
+    {
+      check: "accept"
+    }
+  );
   res.json(
     document
   )
@@ -178,7 +182,6 @@ module.exports.deleteDoc = async(req,res) =>{
   try{
     const doc_id = req.params.id;
     const user_id = req.body.userId;
-    const updateData = req.body;
     const user =  await User.findById(
       user_id
     )
@@ -218,3 +221,24 @@ module.exports.deleteDoc = async(req,res) =>{
     res.status(500).json({ error: "Lỗi" });
   }
 }
+exports.filterDocuments = async (req, res) => {
+  if (user.role!=="admin")
+  {
+    return res.status(400).json({
+      message: "Bạn không có quyền này"
+    })
+  }
+  try {
+    const { check } = req.params;
+    const filter = {};
+    if (check) {
+      filter.check = check; // ví dụ: 'waiting', 'accept', 'reject'
+    }
+
+    const documents = await Document.find(filter);
+    res.json(documents);
+  } catch (err) {
+    console.error("Lỗi lọc tài liệu:", err);
+    res.status(500).json({ message: "Lỗi server khi lọc tài liệu" });
+  }
+};

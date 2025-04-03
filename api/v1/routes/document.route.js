@@ -10,6 +10,8 @@ router.post("/upload", verifyToken, upload.single("file"), controllers.upload);
 router.get("",verifyToken, controllers.listDocs);
 router.get("/detail/:id", verifyToken, controllers.detailDoc);
 router.patch("/update/:id", verifyToken, controllers.editDoc);
-router.delete("/delete/:id",verifyToken,controllers.deleteDoc)
+router.delete("/delete/:id",verifyToken,controllers.deleteDoc);
+router.get("/admin/:check", verifyToken, controllers.filterDocuments
+)
 module.exports = router;
 

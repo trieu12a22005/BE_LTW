@@ -8,7 +8,7 @@ const docSchema = new mongoose.Schema(
     type: { type: String, enum: ["exam", "document"], required: true },
     Subject: { type: String , required: true },
     downloadCount: { type: Number, default: 0 },
-    check: {type: String, enum: ["waiting", "delete", "accept"], default: "waiting"}
+    check: {type: String, enum: ["waiting", "reject", "accept"], default: "waiting"}
   },
   { timestamps: true }
   );
