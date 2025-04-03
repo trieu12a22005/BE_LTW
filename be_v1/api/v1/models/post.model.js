@@ -8,13 +8,6 @@ const PostsSchema = new mongoose.Schema(
     subject: { type: String, required: true },
     views: { type: Number, default: 0 },
     commentsCount: { type: Number, default: 0 },
-    comments: [
-      {
-        username: {type: String, require: true},
-        content: {type: String, require: true},
-        reply: {type: String, require: false}
-      }
-    ],
     check: {type: String, enum: ["waiting", "delete", "accept"], default: "waiting"}
   },
   { timestamps: true }

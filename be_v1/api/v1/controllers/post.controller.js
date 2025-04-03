@@ -1,15 +1,26 @@
 const Post = require("../models/post.model");
 const jwt = require("jsonwebtoken");
+const User = require("../models/user.model");
 
-// Lấy danh sách posts
+// Lấy danh sách posts 
 exports.getPost = async (req, res) => {
   try {
-    const posts = await Post.find().populate("author");
+    const posts = await Post.find({check: "accept"});
     res.json(posts);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi lấy danh sách posts" });
+    res.status(500).json({ message: "Lỗi khi lấy danh sách bài viết", error: error.message });
   }
 };
+exports.getPostAdmin = async (req, res) => {
+  try {
+    const posts = await Post.find();
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi lấy danh sách bài viết", error: error.message });
+  }
+};
+
+
 // Lọc post theo trạng thái check
 exports.getPostByCheck = async (req, res) => {
   try {
@@ -24,21 +35,18 @@ exports.getPostByCheck = async (req, res) => {
 // Tạo post mới
 exports.createPost = async (req, res) => {
   try {
-      let postsData = req.body;
+    const userId = req.user.userId; // từ middleware verifyToken
+    let postsData = req.body;
 
-      if (Array.isArray(postsData)) {
-        const newPosts = await Post.insertMany(postsData);
-        return res.status(201).json(newPosts);
-      }
-
-      const newPost = new Post(postsData);
-      await newPost.save();
-      res.status(201).json(newPost);
-    } catch (error) {
-      console.error("Lỗi khi tạo bài viết:", error);
-      res.status(500).json({ message: "Lỗi khi tạo bài viết", error: error.message });
-    }
+    const newPost = new Post({ ...postsData, author: userId });
+    await newPost.save();
+    res.status(201).json(newPost);
+  } catch (error) {
+    console.error("Lỗi khi tạo bài viết:", error);
+    res.status(500).json({ message: "Lỗi khi tạo bài viết", error: error.message });
+  }
 };
+
 
 // Sửa bài viết (title, content, subject) -- chính chủ
 exports.updatePost = async (req, res) => {
@@ -71,15 +79,10 @@ exports.updatePostCheck = async (req, res) => {
   try {
     const { idPost } = req.params;
     const { check } = req.body;
-    const userRole = req.user.role;
 
     const validChecks = ["waiting", "accept", "delete"];
     if (!validChecks.includes(check)) {
       return res.status(400).json({ message: "Trạng thái không hợp lệ" });
-    }
-
-    if (userRole !== "admin") {
-      return res.status(403).json({ message: "Chỉ admin mới có quyền thay đổi trạng thái duyệt" });
     }
 
     const post = await Post.findById(idPost);
@@ -93,6 +96,7 @@ exports.updatePostCheck = async (req, res) => {
     res.status(500).json({ message: "Lỗi khi cập nhật trạng thái", error: error.message });
   }
 };
+
 
 // Xoá bài viết (admin hoặc chính chủ)
 exports.deletePost = async (req, res) => {

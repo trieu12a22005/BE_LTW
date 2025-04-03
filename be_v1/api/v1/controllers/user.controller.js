@@ -36,7 +36,7 @@ module.exports.register = async (req, res) => {
     console.log("User đã tạo:", user);
 
     // ✅ Tạo JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
+    const token = jwt.sign({ userId: user._id}, process.env.SECRET_KEY, {
       expiresIn: "7d",
     });
 
