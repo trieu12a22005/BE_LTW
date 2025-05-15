@@ -27,7 +27,7 @@ const allowedMIMETypes = [
 ];
 module.exports.upload = async (req, res) => {
   try {
-    const { title, description, type, Subject } = req.body;
+    const { title, description, type, category } = req.body;
     const user = await User.findOne({ _id: req.user.userId, deleted: false });
     if (!req.file) {
       return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
@@ -35,13 +35,15 @@ module.exports.upload = async (req, res) => {
 
     // Kiểm tra loại file có hợp lệ không
     if (!allowedMIMETypes.includes(req.file.mimetype)) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Chỉ cho phép upload file PDF, PPT, PPTX, JPG, PNG, GIF, WEBP.",
+      return res.status(400).json({
+          error: "Chỉ cho phép upload file PDF, PPT, PPTX, JPG, PNG, GIF, WEBP.",
         });
     }
+
+    if (!Array.isArray(category) || category.length === 0) {
+      return res.status(400).json({ error: "Danh mục không hợp lệ" });
+    }
+    const formattedCategory = category.map(id => ({ categoryId: id }));    
 
     const filePath = req.file.path;
     const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
@@ -70,10 +72,10 @@ module.exports.upload = async (req, res) => {
       title,
       description,
       type,
-      Subject,
+      category: formattedCategory,
       fileUrl,
       uploadedBy: user.username,
-    });
+    });    
 
     await document.save();
     console.log("User đã tạo:", user);
@@ -153,6 +155,11 @@ module.exports.editDoc = async(req,res) => {
         message: "Bạn không có quyền chỉnh sửa tài liệu này"
       })
     }
+
+    if (Array.isArray(updateData.category)) {
+      updateData.category = updateData.category.map(id => ({ categoryId: id }));
+    }
+
     const updatedDoc = await Document.findByIdAndUpdate(doc_id, updateData, {
       new: true, // Trả về dữ liệu sau khi cập nhật
       runValidators: true, // Kiểm tra validation của schema

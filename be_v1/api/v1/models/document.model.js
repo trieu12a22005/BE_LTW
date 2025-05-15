@@ -6,8 +6,19 @@ const docSchema = new mongoose.Schema(
     fileUrl: { type: String, required: true },
     uploadedBy: { type: String, required: true },
     type: { type: String, enum: ["exam", "document"], required: true },
-    category: { type: String , required: true },
+    category:[
+      {
+        categoryId: { type: String, required: true },
+        _id: false
+      }
+    ],
     downloadCount: { type: Number, default: 0 },
+    comments: [
+      {
+        commentsId: {type: String, required:true },
+        _id: false
+      }
+    ],
     check: {type: String, enum: ["waiting", "delete", "accept"], default: "waiting"}
   },
   { timestamps: true }

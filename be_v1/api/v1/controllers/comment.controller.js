@@ -35,6 +35,13 @@ exports.createComment = async (req, res) => {
     });
 
     await newComment.save();
+    if (type === "post") {
+      await Post.findByIdAndUpdate(
+        toId,
+        { $inc: { commentsCount: 1 } },
+        { new: true }
+      );
+    }    
 
     res.status(201).json({ message: "Bình luận đã được tạo", comment: newComment });
   } catch (error) {
@@ -60,6 +67,13 @@ exports.deleteComment = async (req, res) => {
     }
 
     await Comment.findByIdAndDelete(idComment);
+    if (comment && comment.toDocOrPost && req.params.type === "post") {
+      await Post.findByIdAndUpdate(
+        comment.toDocOrPost,
+        { $inc: { commentsCount: -1 } },
+        { new: true }
+      );
+    }    
 
     res.json({ message: "Xóa bình luận thành công" });
   } catch (error) {

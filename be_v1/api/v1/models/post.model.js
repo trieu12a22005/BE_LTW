@@ -16,7 +16,8 @@ const PostsSchema = new mongoose.Schema(
     check: {type: String, enum: ["waiting", "delete", "accept"], default: "waiting"},
     comments: [
       {
-        commentsId: {type: String, required:true }
+        commentsId: {type: String, required:true },
+        _id: false
       }
     ]
   },
