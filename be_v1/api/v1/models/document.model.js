@@ -19,7 +19,11 @@ const docSchema = new mongoose.Schema(
         _id: false
       }
     ],
-    check: {type: String, enum: ["waiting", "delete", "accept"], default: "waiting"}
+    check: {
+      type: String,
+      enum: ["waiting", "reject", "accept"],
+      default: "waiting"
+    }
   },
   { timestamps: true }
   );

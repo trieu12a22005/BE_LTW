@@ -4,7 +4,9 @@ const fs = require("fs");
 const User = require("../models/user.model");
 const path = require("path");
 const multer = require("multer");
-const { createClient } = require("@supabase/supabase-js");
+const {
+  createClient
+} = require("@supabase/supabase-js");
 // Cấu hình Supabase
 const SUPABASE_URL = "https://jcrxndjvwrxpuntjwkze.supabase.co";
 const SUPABASE_KEY =
@@ -13,7 +15,9 @@ const BUCKET_NAME = "uitstudyshare"; // ✅ Đảm bảo tên bucket đúng
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Cấu hình Multer để lưu file tạm thời
-const upload = multer({ dest: "uploads/" });
+const upload = multer({
+  dest: "uploads/"
+});
 
 // Danh sách MIME types hợp lệ
 const allowedMIMETypes = [
@@ -27,30 +31,56 @@ const allowedMIMETypes = [
 ];
 module.exports.upload = async (req, res) => {
   try {
-    const { title, description, type, category } = req.body;
-    const user = await User.findOne({ _id: req.user.userId, deleted: false });
+    const {
+      title,
+      description,
+      type,
+      category
+    } = req.body;
+    const user = await User.findOne({
+      _id: req.user.userId,
+      deleted: false
+    });
     if (!req.file) {
-      return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
+      return res.status(400).json({
+        error: "Vui lòng chọn file để upload!"
+      });
+    }
+    let categoryArr = [];
+    if (category) {
+      if (typeof category === "string") {
+        try {
+          categoryArr = JSON.parse(category);
+        } catch {
+          categoryArr = [{
+            categoryId: category
+          }];
+        }
+      } else if (Array.isArray(category)) {
+        categoryArr = category.map(id => ({
+          categoryId: id
+        }));
+      }
     }
 
     // Kiểm tra loại file có hợp lệ không
     if (!allowedMIMETypes.includes(req.file.mimetype)) {
-      return res.status(400).json({
+      return res
+        .status(400)
+        .json({
           error: "Chỉ cho phép upload file PDF, PPT, PPTX, JPG, PNG, GIF, WEBP.",
         });
     }
-
-    if (!Array.isArray(category) || category.length === 0) {
-      return res.status(400).json({ error: "Danh mục không hợp lệ" });
-    }
-    const formattedCategory = category.map(id => ({ categoryId: id }));    
 
     const filePath = req.file.path;
     const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
     const fileStream = fs.createReadStream(filePath); // Dùng file stream thay vì buffer
 
     // Upload file lên Supabase Storage
-    const { data, error } = await supabase.storage
+    const {
+      data,
+      error
+    } = await supabase.storage
       .from("uitstudyshare") // ✅ Sử dụng đúng bucket
       .upload(fileName, fileStream, {
         contentType: req.file.mimetype,
@@ -61,21 +91,26 @@ module.exports.upload = async (req, res) => {
       console.error("Lỗi upload:", error);
       return res
         .status(500)
-        .json({ error: "Lỗi khi upload file lên Supabase." });
+        .json({
+          error: "Lỗi khi upload file lên Supabase."
+        });
     }
     // Lấy URL file từ Supabase
-    const { data: publicUrlData } = supabase.storage
-      .from("uitstudyshare")
+    const {
+      data: publicUrlData
+    } = supabase.storage
+      .from(BUCKET_NAME)
       .getPublicUrl(fileName);
     const fileUrl = publicUrlData.publicUrl;
     const document = new Document({
       title,
       description,
       type,
-      category: formattedCategory,
+      //Subject,
+      category: categoryArr,
       fileUrl,
       uploadedBy: user.username,
-    });    
+    });
 
     await document.save();
     console.log("User đã tạo:", user);
@@ -88,28 +123,31 @@ module.exports.upload = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi upload file:", error);
-    res.status(500).json({ error: "Lỗi khi upload file" });
+    res.status(500).json({
+      error: "Lỗi khi upload file"
+    });
   }
 };
-module.exports.listDocs = async(req,res) =>{
-try{
-  const document = await Document.find();
-  res.json(
-    document
-  )
-} catch (error) {
-  console.error("Lỗi upload file:", error);
-  res.status(500).json({ error: "Lỗi khi upload file" });
+module.exports.listDocs = async (req, res) => {
+  try {
+    const documents = await Document.find({
+      check: "accept"
+    });
+    res.json(documents);
+  } catch (error) {
+    console.error("Lỗi upload file:", error);
+    res.status(500).json({
+      error: "Lỗi khi upload file"
+    });
+  }
 }
-}
-module.exports.detailDoc = async(req,res) =>{
-  try{
+module.exports.detailDoc = async (req, res) => {
+  try {
     const doc_id = req.params.id;
-    if (!doc_id)
-    {
-      res.status(400).json({
+    if (!doc_id) {
+      return res.status(400).json({
         message: "Không có id tài liệu"
-      })
+      });
     }
     const document = await Document.findById(
       doc_id
@@ -124,19 +162,20 @@ module.exports.detailDoc = async(req,res) =>{
     })
   } catch (error) {
     console.error("Lỗi upload file:", error);
-    res.status(500).json({ error: "Lỗi" });
+    res.status(500).json({
+      error: "Lỗi"
+    });
   }
 }
-module.exports.editDoc = async(req,res) => {
-  try{
+module.exports.editDoc = async (req, res) => {
+  try {
     const doc_id = req.params.id;
     const user_id = req.body.userId;
     const updateData = req.body;
-    const user =  await User.findById(
+    const user = await User.findById(
       user_id
     )
-    if (!doc_id)
-    {
+    if (!doc_id) {
       return res.status(400).json({
         message: "Không có id tài liệu"
       })
@@ -149,17 +188,11 @@ module.exports.editDoc = async(req,res) => {
         message: "Không tìm thấy tài liệu"
       });
     }
-    if (user.username !== document.uploadedBy && user.role!=="admin")
-    {
-      return res.status(400).json({
+    if (user.username !== document.uploadedBy && user.role !== "admin") {
+      return res.status(403).json({
         message: "Bạn không có quyền chỉnh sửa tài liệu này"
       })
     }
-
-    if (Array.isArray(updateData.category)) {
-      updateData.category = updateData.category.map(id => ({ categoryId: id }));
-    }
-
     const updatedDoc = await Document.findByIdAndUpdate(doc_id, updateData, {
       new: true, // Trả về dữ liệu sau khi cập nhật
       runValidators: true, // Kiểm tra validation của schema
@@ -170,6 +203,23 @@ module.exports.editDoc = async(req,res) => {
         message: "Không tìm thấy tài liệu để cập nhật",
       });
     }
+    if (updateData.category) {
+      let categoryArr = [];
+      if (typeof updateData.category === "string") {
+        try {
+          categoryArr = JSON.parse(updateData.category);
+        } catch {
+          categoryArr = [{
+            categoryId: updateData.category
+          }];
+        }
+      } else if (Array.isArray(updateData.category)) {
+        categoryArr = updateData.category.map(id => ({
+          categoryId: id
+        }));
+      }
+      updateData.category = categoryArr;
+    }
     res.json({
       code: 200,
       message: "Cập nhật thành công",
@@ -178,19 +228,19 @@ module.exports.editDoc = async(req,res) => {
 
   } catch (error) {
     console.error("Lỗi cập nhật file:", error);
-    res.status(500).json({ error: "Lỗi" });
+    res.status(500).json({
+      error: "Lỗi"
+    });
   }
 }
-module.exports.deleteDoc = async(req,res) =>{
-  try{
+module.exports.deleteDoc = async (req, res) => {
+  try {
     const doc_id = req.params.id;
     const user_id = req.body.userId;
-    const updateData = req.body;
-    const user =  await User.findById(
+    const user = await User.findById(
       user_id
     )
-    if (!doc_id)
-    {
+    if (!doc_id) {
       return res.status(400).json({
         message: "Không có id tài liệu"
       })
@@ -203,17 +253,15 @@ module.exports.deleteDoc = async(req,res) =>{
         message: "Không tìm thấy tài liệu"
       });
     }
-    if (user.username !== document.uploadedBy && user.role!="admin")
-    {
-      res.status(400).json({
+    if (user.username !== document.uploadedBy && user.role != "admin") {
+      return res.status(403).json({
         message: "Bạn không có quyền xóa tài liệu này"
       })
     }
     const DeleteDoc = await Document.findByIdAndDelete(doc_id);
-    if (!DeleteDoc)
-    {
+    if (!DeleteDoc) {
       return res.status(400).json({
-        message:"Không tìm thấy tài liệu đã xóa"
+        message: "Không tìm thấy tài liệu đã xóa"
       })
     }
     res.status(200).json({
@@ -222,6 +270,33 @@ module.exports.deleteDoc = async(req,res) =>{
     })
   } catch (error) {
     console.error("Lỗi xóa file:", error);
-    res.status(500).json({ error: "Lỗi" });
+    res.status(500).json({
+      error: "Lỗi"
+    });
   }
 }
+exports.filterDocuments = async (req, res) => {
+  const user = await User.findById(req.user.userId);
+  if (user.role !== "admin") {
+    return res.status(403).json({
+      message: "Bạn không có quyền này"
+    })
+  }
+  try {
+    const {
+      check
+    } = req.params;
+    const filter = {};
+    if (check && ["waiting", "reject", "accept"].includes(check)) {
+      filter.check = check;
+    }
+
+    const documents = await Document.find(filter);
+    res.json(documents);
+  } catch (err) {
+    console.error("Lỗi lọc tài liệu:", err);
+    res.status(500).json({
+      message: "Lỗi server khi lọc tài liệu"
+    });
+  }
+};
