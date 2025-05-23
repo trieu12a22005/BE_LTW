@@ -219,9 +219,55 @@ module.exports.changePassword = async (req, res) => {
   //   res.status(500).json({ error: "Lỗi khi upload file" });
   // }
   try {
+    const userId = req.user.userId;
+    const {
+      oldPassword,
+      newPassword
+    } = req.body;
 
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Vui lòng cung cấp đầy đủ mật khẩu cũ và mới.",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || user.deleted) {
+      return res.status(404).json({
+        message: "Người dùng không tồn tại.",
+      });
+    }
+
+    // So sánh mật khẩu cũ
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Mật khẩu cũ không đúng.",
+      });
+    }
+
+    // Kiểm tra trùng mật khẩu
+    const isSameAsOld = await bcrypt.compare(newPassword, user.password);
+    if (isSameAsOld) {
+      return res.status(400).json({
+        message: "Mật khẩu mới không được trùng với mật khẩu cũ.",
+      });
+    }
+
+    // Băm mật khẩu mới và cập nhật
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({
+      message: "Đổi mật khẩu thành công.",
+    });
   } catch (error) {
-
+    console.error("Lỗi khi đổi mật khẩu:", error);
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message,
+    });
   }
 };
 module.exports.forgotPassword = async (req, res) => {
@@ -393,31 +439,32 @@ module.exports.logout = async (req, res) => {
     message: "Đã logout và cookie đã bị xóa!"
   });
 };
-module.exports.getUserById = async(req,res) => {
-  try{
-    const {idUser} = req.params; 
+module.exports.getUserById = async (req, res) => {
+  try {
+    const {
+      idUser
+    } = req.params;
 
-    const userFind=await User.findOne({
+    const userFind = await User.findOne({
       _id: idUser,
-      deleted:false
+      deleted: false
     });
 
-    if(!userFind){
+    if (!userFind) {
       return req.status(404).json({
-        message:"User Id không tồn tại!",
+        message: "User Id không tồn tại!",
       });
     }
 
     res.json({
       fullName: userFind.fullName,
-        email: userFind.email,
-        birthday: userFind.birthday,
-        role: userFind.role,
-        phone: userFind.phone,
-        password: userFind.password,
-        username: userFind.username,
+      email: userFind.email,
+      birthday: userFind.birthday,
+      role: userFind.role,
+      phone: userFind.phone,
+      username: userFind.username,
     });
-  }catch (error){
+  } catch (error) {
     res.status(500).json({
       message: "Lỗi server",
       error: error.message
