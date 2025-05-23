@@ -115,50 +115,55 @@ module.exports.resetPassword = async (req, res) => {
   }
 };
 module.exports.changePassword = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
-    }
+  //try {
+  //   if (!req.file) {
+  //     return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
+  //   }
 
-    // Kiểm tra loại file có hợp lệ không
-    if (!allowedMIMETypes.includes(req.file.mimetype)) {
-      return res.status(400).json({
-        error: "Chỉ cho phép upload file PDF, PPT, PPTX, JPG, PNG, GIF, WEBP.",
-      });
-    }
+  //   // Kiểm tra loại file có hợp lệ không
+  //   if (!allowedMIMETypes.includes(req.file.mimetype)) {
+  //     return res.status(400).json({
+  //       error: "Chỉ cho phép upload file PDF, PPT, PPTX, JPG, PNG, GIF, WEBP.",
+  //     });
+  //   }
 
-    const filePath = req.file.path;
-    const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
-    const fileBuffer = fs.readFileSync(filePath);
+  //   const filePath = req.file.path;
+  //   const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
+  //   const fileBuffer = fs.readFileSync(filePath);
 
-    // Upload file lên Supabase Storage
-    const { data, error } = await supabase.storage
-      .from("uploads") // Thay "uploads" bằng tên bucket của bạn trên Supabase
-      .upload(fileName, fileBuffer, {
-        contentType: req.file.mimetype,
-      });
+  //   // Upload file lên Supabase Storage
+  //   const { data, error } = await supabase.storage
+  //     .from("uploads") // Thay "uploads" bằng tên bucket của bạn trên Supabase
+  //     .upload(fileName, fileBuffer, {
+  //       contentType: req.file.mimetype,
+  //     });
 
-    if (error) {
-      console.error("Lỗi upload:", error);
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi upload file lên Supabase." });
-    }
+  //   if (error) {
+  //     console.error("Lỗi upload:", error);
+  //     return res
+  //       .status(500)
+  //       .json({ error: "Lỗi khi upload file lên Supabase." });
+  //   }
 
-    // Xóa file tạm sau khi upload
-    fs.unlinkSync(filePath);
+  //   // Xóa file tạm sau khi upload
+  //   fs.unlinkSync(filePath);
 
-    // Lấy URL file từ Supabase
-    const fileUrl = `${SUPABASE_URL}/storage/v1/object/public/uploads/${fileName}`;
+  //   // Lấy URL file từ Supabase
+  //   const fileUrl = `${SUPABASE_URL}/storage/v1/object/public/uploads/${fileName}`;
 
-    res.status(200).json({
-      message: "Upload thành công!",
-      fileName,
-      downloadURL: fileUrl,
-    });
-  } catch (error) {
-    console.error("Lỗi upload file:", error);
-    res.status(500).json({ error: "Lỗi khi upload file" });
+  //   res.status(200).json({
+  //     message: "Upload thành công!",
+  //     fileName,
+  //     downloadURL: fileUrl,
+  //   });
+  // } catch (error) {
+  //   console.error("Lỗi upload file:", error);
+  //   res.status(500).json({ error: "Lỗi khi upload file" });
+  // }
+  try{
+    
+  } catch (error){
+    
   }
 };
 module.exports.forgotPassword = async (req, res) => {
@@ -235,6 +240,7 @@ module.exports.detailUser = async (req, res) => {
 };
 module.exports.upDateInfo = async (req, res) => {
   console.log(req.user.userId);
+  const updateData=res.body;
   delete updateData.password;
   delete updateData.email;
   try {
@@ -265,3 +271,6 @@ module.exports.logout = async (req, res) => {
 
   res.json({ code: 200, message: "Đã logout và cookie đã bị xóa!" });
 };
+// module.exports.getUserById = async (req,res) ={
+
+// }

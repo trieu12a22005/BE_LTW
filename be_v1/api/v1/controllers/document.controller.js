@@ -81,7 +81,7 @@ module.exports.upload = async (req, res) => {
       data,
       error
     } = await supabase.storage
-      .from("uitstudyshare") // ✅ Sử dụng đúng bucket
+      .from(BUCKET_NAME) // ✅ Sử dụng đúng bucket
       .upload(fileName, fileStream, {
         contentType: req.file.mimetype,
         duplex: "half",
@@ -109,7 +109,7 @@ module.exports.upload = async (req, res) => {
       //Subject,
       category: categoryArr,
       fileUrl,
-      uploadedBy: user.username,
+      uploadedBy: user.userId,
     });
 
     await document.save();
