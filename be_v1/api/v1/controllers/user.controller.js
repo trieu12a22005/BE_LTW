@@ -6,15 +6,29 @@ const ForgotPassword = require("../models/forgot-pasword.model");
 const sendMailHelper = require("../../../helpers/sendMail");
 module.exports.register = async (req, res) => {
   try {
-    const { username, fullName, email, password, birthday, phone, role } =
-      req.body;
+    const {
+      username,
+      fullName,
+      email,
+      password,
+      birthday,
+      phone,
+      role,
+      address
+    } =
+    req.body;
 
     console.log("Dữ liệu nhận được:", req.body); // ✅ Log kiểm tra dữ liệu
 
     // Kiểm tra xem email đã tồn tại chưa
-    const existEmail = await User.findOne({ email, deleted: false });
+    const existEmail = await User.findOne({
+      email,
+      deleted: false
+    });
     if (existEmail) {
-      return res.status(400).json({ message: "Email đã tồn tại!" });
+      return res.status(400).json({
+        message: "Email đã tồn tại!"
+      });
     }
 
     // ✅ Mã hóa mật khẩu trước khi lưu
@@ -30,13 +44,16 @@ module.exports.register = async (req, res) => {
       password: hashedPassword, // ✅ Lưu mật khẩu đã mã hóa
       birthday,
       phone,
+      address
     });
 
     await user.save();
     console.log("User đã tạo:", user);
 
     // ✅ Tạo JWT token
-    const token = jwt.sign({ userId: user._id}, process.env.SECRET_KEY, {
+    const token = jwt.sign({
+      userId: user._id
+    }, process.env.SECRET_KEY, {
       expiresIn: "7d",
     });
 
@@ -48,27 +65,47 @@ module.exports.register = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({ code: 200, message: "Tạo tài khoản thành công!", token });
+    res.json({
+      code: 200,
+      message: "Tạo tài khoản thành công!",
+      token
+    });
   } catch (error) {
     console.error("Lỗi khi đăng ký:", error); // ✅ In log lỗi để kiểm tra
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
   }
 };
 module.exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const {
+      email,
+      password
+    } = req.body;
     console.log(email);
-    const user = await User.findOne({ email, deleted: false });
+    const user = await User.findOne({
+      email,
+      deleted: false
+    });
     if (!user) {
-      return res.status(400).json({ message: "Email không tồn tại!" });
+      return res.status(400).json({
+        message: "Email không tồn tại!"
+      });
     }
     console.log(user.password);
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ code: 400, message: "Sai mật khẩu" });
+      return res.status(400).json({
+        code: 400,
+        message: "Sai mật khẩu"
+      });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
+    const token = jwt.sign({
+      userId: user._id
+    }, process.env.SECRET_KEY, {
       expiresIn: "7d",
     });
 
@@ -79,9 +116,15 @@ module.exports.login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({ code: 200, message: "Đăng nhập thành công!" });
+    res.status(200).json({
+      code: 200,
+      message: "Đăng nhập thành công!"
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
   }
 };
 
@@ -92,10 +135,15 @@ module.exports.resetPassword = async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const userId = decoded.userId;
-    const user = await User.findOne({ _id: userId });
+    const user = await User.findOne({
+      _id: userId
+    });
 
     if (!user) {
-      return res.json({ code: 400, message: "User không tồn tại" });
+      return res.json({
+        code: 400,
+        message: "User không tồn tại"
+      });
     }
 
     const isSamePassword = await bcrypt.compare(password, user.password);
@@ -107,11 +155,21 @@ module.exports.resetPassword = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.updateOne({ _id: userId }, { password: hashedPassword });
+    await User.updateOne({
+      _id: userId
+    }, {
+      password: hashedPassword
+    });
 
-    res.json({ code: 200, message: "Cập nhật mật khẩu thành công" });
+    res.json({
+      code: 200,
+      message: "Cập nhật mật khẩu thành công"
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
   }
 };
 module.exports.changePassword = async (req, res) => {
@@ -160,19 +218,25 @@ module.exports.changePassword = async (req, res) => {
   //   console.error("Lỗi upload file:", error);
   //   res.status(500).json({ error: "Lỗi khi upload file" });
   // }
-  try{
-    
-  } catch (error){
-    
+  try {
+
+  } catch (error) {
+
   }
 };
 module.exports.forgotPassword = async (req, res) => {
   try {
     const email = req.body.email;
-    const user = await User.findOne({ email, deleted: false });
+    const user = await User.findOne({
+      email,
+      deleted: false
+    });
 
     if (!user) {
-      return res.json({ code: 400, message: "Email không tồn tại" });
+      return res.json({
+        code: 400,
+        message: "Email không tồn tại"
+      });
     }
 
     const otp = generateHelper.generateRandomNumber(6);
@@ -188,23 +252,42 @@ module.exports.forgotPassword = async (req, res) => {
     const html = `Mã OTP của bạn là <b>${otp}</b> (Sử dụng trong 3 phút). Vui lòng không chia sẻ mã này.`;
     sendMailHelper.sendMail(email, subject, html);
 
-    res.json({ code: 200, message: "Đã gửi mã OTP qua email!" });
+    res.json({
+      code: 200,
+      message: "Đã gửi mã OTP qua email!"
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
   }
 };
 
 module.exports.otpPassword = async (req, res) => {
   try {
-    const { email, otp } = req.body;
-    const result = await ForgotPassword.findOne({ email, otp });
+    const {
+      email,
+      otp
+    } = req.body;
+    const result = await ForgotPassword.findOne({
+      email,
+      otp
+    });
 
     if (!result) {
-      return res.json({ code: 400, message: "Mã OTP không hợp lệ" });
+      return res.json({
+        code: 400,
+        message: "Mã OTP không hợp lệ"
+      });
     }
 
-    const user = await User.findOne({ email });
-    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
+    const user = await User.findOne({
+      email
+    });
+    const token = jwt.sign({
+      userId: user._id
+    }, process.env.SECRET_KEY, {
       expiresIn: "10m",
     });
 
@@ -215,15 +298,24 @@ module.exports.otpPassword = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({ code: 200, message: "Xác thực thành công" });
+    res.json({
+      code: 200,
+      message: "Xác thực thành công"
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
   }
 };
 
 module.exports.detailUser = async (req, res) => {
   try {
-    const user = await User.findOne({ _id: req.user.userId, deleted: false });
+    const user = await User.findOne({
+      _id: req.user.userId,
+      deleted: false
+    });
 
     res.json({
       fullName: user.fullName,
@@ -235,29 +327,56 @@ module.exports.detailUser = async (req, res) => {
       username: user.username,
     });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
   }
 };
 module.exports.upDateInfo = async (req, res) => {
-  console.log(req.user.userId);
-  const updateData=res.body;
-  delete updateData.password;
-  delete updateData.email;
+  //console.log(req.user.userId);
   try {
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.userId,
-      updateData,
-      { new: true, runValidators: true } // new: true -> trả về dữ liệu mới sau khi update
-    );
-    if (!updatedUser) {
-      return res.status(404).json({ error: "User không tồn tại" });
+    const userId = req.user.userId;
+    const updateData = req.body;
+    // Không cho phép chỉnh sửa email hoặc role
+    if (updateData.email !== undefined || updateData.role !== undefined) {
+      return res.status(403).json({
+        warning: "Không được chỉnh sửa Email hoặc Role"
+      });
     }
+    // Tìm user hiện tại
+    const user = await User.findById(userId);
+    if (!user || user.deleted) {
+      return res.status(404).json({
+        message: "User không tồn tại"
+      });
+    }
+    // Cập nhật các trường được phép
+    const allowedFields = ["fullName", "phone", "birthday", "address", "username"];
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        user[field] = updateData[field];
+      }
+    });
 
-    res
-      .status(200)
-      .json({ message: "Cập nhật thành công!", user: updatedUser });
+    await user.save();
+
+    res.status(200).json({
+      message: "Cập nhật thông tin thành công!",
+      user: {
+        fullName: user.fullName,
+        username: user.username,
+        phone: user.phone,
+        birthday: user.birthday,
+        address: user.address
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    console.error("Lỗi khi cập nhật thông tin người dùng:", error);
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
   }
 };
 module.exports.logout = async (req, res) => {
@@ -269,7 +388,10 @@ module.exports.logout = async (req, res) => {
     path: "/",
   });
 
-  res.json({ code: 200, message: "Đã logout và cookie đã bị xóa!" });
+  res.json({
+    code: 200,
+    message: "Đã logout và cookie đã bị xóa!"
+  });
 };
 // module.exports.getUserById = async (req,res) ={
 
