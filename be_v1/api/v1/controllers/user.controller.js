@@ -393,6 +393,34 @@ module.exports.logout = async (req, res) => {
     message: "Đã logout và cookie đã bị xóa!"
   });
 };
-// module.exports.getUserById = async (req,res) ={
+module.exports.getUserById = async(req,res) => {
+  try{
+    const {idUser} = req.params; 
 
-// }
+    const userFind=await User.findOne({
+      _id: idUser,
+      deleted:false
+    });
+
+    if(!userFind){
+      return req.status(404).json({
+        message:"User Id không tồn tại!",
+      });
+    }
+
+    res.json({
+      fullName: userFind.fullName,
+        email: userFind.email,
+        birthday: userFind.birthday,
+        role: userFind.role,
+        phone: userFind.phone,
+        password: userFind.password,
+        username: userFind.username,
+    });
+  }catch (error){
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
+  }
+}
