@@ -188,7 +188,7 @@ module.exports.editDoc = async (req, res) => {
         message: "Không tìm thấy tài liệu"
       });
     }
-    if (user.username !== document.uploadedBy && user.role !== "admin") {
+    if (user.userId !== document.uploadedBy && user.role !== "admin") {
       return res.status(403).json({
         message: "Bạn không có quyền chỉnh sửa tài liệu này"
       })
@@ -253,7 +253,7 @@ module.exports.deleteDoc = async (req, res) => {
         message: "Không tìm thấy tài liệu"
       });
     }
-    if (user.username !== document.uploadedBy && user.role != "admin") {
+    if (user.userId !== document.uploadedBy && user.role != "admin") {
       return res.status(403).json({
         message: "Bạn không có quyền xóa tài liệu này"
       })
@@ -300,3 +300,44 @@ exports.filterDocuments = async (req, res) => {
     });
   }
 };
+
+exports.getDocByIdUser = async (req, res) => {
+  try {
+    const {
+      idUser
+    } = req.params;
+    // Tìm thông tin người dùng cần xem các danh sách tài liệu của họhọ
+    const targetUser = await User.findById(idUser);
+    if (!targetUser || targetUser.deleted) {
+      return res.status(404).json({
+        message: "Không tìm thấy người dùng."
+      });
+    }
+
+    // Người đang đăng nhập (từ token middleware)
+    const currentUser = await User.findById(req.user.userId);
+
+    let query = {
+      uploadedBy: targetUser._id
+    };
+
+    if (currentUser.role !== "admin" && currentUser._id.toString() !== idUser){
+      query.check = "accept";
+    }
+
+    const documents = await Document.find(query);
+
+    res.status(200).json({
+      message: "Lấy danh sách tài liệu thành công",
+      count: documents.length,
+      documents
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi lấy tài liệu theo người dùng:", error);
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
+  }
+}

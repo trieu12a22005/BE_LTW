@@ -14,5 +14,6 @@ router.get("/detail/:id", verifyToken, controllers.detailDoc);
 router.patch("/update/:id", verifyToken, controllers.editDoc);
 router.delete("/delete/:id", verifyToken, controllers.deleteDoc);
 router.get("/admin/:check", verifyToken, controllers.filterDocuments)
+router.get("/getByIdUser/:idUser", verifyToken, controllers.getDocByIdUser);
 
 module.exports = router;
