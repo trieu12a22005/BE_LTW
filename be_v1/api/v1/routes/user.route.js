@@ -17,5 +17,7 @@ router.get("/detail",verifyToken, controllers.detailUser);
 router.post("/logout",verifyToken,controllers.logout)
 router.patch("/password/change", verifyToken, controllers.changePassword)
 router.patch("/update",verifyToken, controllers.upDateInfo);
+router.get("/getUser/:idUser", verifyToken, controllers.getUserById);
+
 module.exports = router;
 

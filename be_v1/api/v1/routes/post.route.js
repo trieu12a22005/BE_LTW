@@ -3,7 +3,7 @@ const controllers = require("../controllers/post.controller")
 const middlewareLogin = require("../../../validate/middlewareLogin")
 const verifyToken = require("../../../validate/verifyToken")
 const checkAdmin = require("../../../validate/checkAdmin")
-const router =  express.Router()
+const router = express.Router()
 
 router.get("/Student", verifyToken, controllers.getPost);
 router.get("/Admin", checkAdmin, controllers.getPostAdmin);
