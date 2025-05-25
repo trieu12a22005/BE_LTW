@@ -1,8 +1,6 @@
 const Document = require("../models/document.model");
 const express = require("express");
-const fs = require("fs");
 const User = require("../models/user.model");
-const path = require("path");
 const multer = require("multer");
 const { createClient } = require("@supabase/supabase-js");
 
@@ -54,10 +52,10 @@ exports.uploadFile = async (req, res) => {
       title,
       description,
       type,
-      Subject,  // ✅ Nếu schema yêu cầu
+      Subject,  // Thêm nếu schema yêu cầu
       category: categoryArr,
       fileUrl,
-      uploadedBy: user._id  // ✅ ObjectId
+      uploadedBy: user._id
     });
     await document.save();
 
@@ -67,6 +65,7 @@ exports.uploadFile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 module.exports.listDocs = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
