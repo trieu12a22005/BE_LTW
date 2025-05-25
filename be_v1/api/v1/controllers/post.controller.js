@@ -2,6 +2,7 @@ const Post = require("../models/post.model");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 const Comment = require("../models/comment.model");
+const mongoose = require("mongoose");
 const Category = require("../models/category.model");
 
 // Lấy danh sách posts 
@@ -142,5 +143,70 @@ exports.deletePost = async (req, res) => {
     res.json({ message: "Bài viết đã bị đánh dấu xoá", post });
   } catch (error) {
     res.status(500).json({ message: "Lỗi khi xoá bài viết", error: error.message });
+  }
+};
+
+exports.addComment = async (req, res) => {
+  try {
+    const {
+      postId
+    } = req.params;
+    const {
+      commentId
+    } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(postId) || !mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.status(400).json({
+        message: "ID không hợp lệ"
+      });
+    }
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({
+        message: "Không tìm thấy comment"
+      });
+    }
+
+    if (comment.toDocOrPost !== postId) {
+      return res.status(400).json({
+        message: "Comment không thuộc post này"
+      });
+    }
+
+    if (comment.toReply) {
+      return res.status(400).json({
+        message: "Không thể thêm reply vào post"
+      });
+    }
+
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId, {
+        $push: {
+          comments: {
+            commentsId: commentId
+          }
+        }
+      }, {
+        new: true
+      }
+    );
+
+    if (!updatedPost) {
+      return res.status(404).json({
+        message: "Không tìm thấy bài viết"
+      });
+    }
+
+    res.status(200).json({
+      message: "Đã thêm comment vào post",
+      post: updatedPost
+    });
+  } catch (error) {
+    console.error("Lỗi addComment:", error);
+    res.status(500).json({
+      message: "Lỗi khi thêm comment",
+      error: error.message
+    });
   }
 };

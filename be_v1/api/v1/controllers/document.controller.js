@@ -383,12 +383,21 @@ exports.getByCategory = async (req, res) => {
         }
       }
     };
+    const user = await User.findById(req.user.userId);
 
-    if (req.user.role !== "admin") {
+    if (user.role !== "admin") {
       query.check = "accept";
     }
 
-    const documents = await Document.find(query);
+    const documents = await Document.find(query).sort({
+      createdAt: -1 //sap tai lieu moi len dau
+    });;
+
+    if (documents.length === 0) {
+      return res.status(404).json({
+        message: "Không tìm thấy tài liệu thuộc category này."
+      });
+    }
 
     res.status(200).json({
       user: req.user,

@@ -44,6 +44,22 @@ exports.createComment = async (req, res) => {
       });
     }
 
+    // Nếu reply khác "null", kiểm tra comment cha
+    if (reply !== "null") {
+      const parentComment = await Comment.findById(reply);
+      if (!parentComment) {
+        return res.status(404).json({
+          message: "Không tìm thấy comment cha để reply"
+        });
+      }
+
+      if (parentComment.isDelete) {
+        return res.status(400).json({
+          message: "Không thể reply vào comment đã bị xóa"
+        });
+      }
+    }
+
     const newComment = new Comment({
       toDocOrPost: toId,
       idUser: req.user.userId,
@@ -54,15 +70,21 @@ exports.createComment = async (req, res) => {
     await newComment.save();
 
     if (type === "post") {
-      await Post.findByIdAndUpdate(
-        toId, {
-          $inc: {
-            commentsCount: 1
-          }
-        }, {
-          new: true
+      const updateFields = {
+        $inc: {
+          commentsCount: 1
         }
-      );
+      };
+      if (reply === "null") {
+        updateFields.$push = {
+          comments: {
+            commentsId: newComment._id
+          }
+        };
+      }
+      await Post.findByIdAndUpdate(toId, updateFields, {
+        new: true
+      });
     } else if (type === "doc" && reply === "null") {
       await Document.findByIdAndUpdate(
         toId, {
@@ -94,11 +116,11 @@ exports.createComment = async (req, res) => {
 exports.deleteComment = async (req, res) => {
   try {
     const {
-      idComment
+      idComment,
+      type
     } = req.params;
 
     const comment = await Comment.findById(idComment);
-
     if (!comment) {
       return res.status(404).json({
         message: "Không tìm thấy bình luận"
@@ -112,8 +134,13 @@ exports.deleteComment = async (req, res) => {
       });
     }
 
-    await Comment.findByIdAndDelete(idComment);
-    if (comment && comment.toDocOrPost && req.params.type === "post") {
+    // Cập nhật trạng thái bình luận (soft delete)
+    comment.content = "Bình luận này đã bị xóa";
+    comment.isDelete = true;
+    await comment.save();
+
+    // Giảm commentsCount nếu là post
+    if (type === "post" && comment.toDocOrPost) {
       await Post.findByIdAndUpdate(
         comment.toDocOrPost, {
           $inc: {
@@ -126,7 +153,7 @@ exports.deleteComment = async (req, res) => {
     }
 
     res.json({
-      message: "Xóa bình luận thành công"
+      message: "Đã chuyển trạng thái bình luận thành 'đã xóa'"
     });
   } catch (error) {
     res.status(500).json({
