@@ -8,14 +8,20 @@ const docSchema = new mongoose.Schema(
     type: { type: String, enum: ["exam", "document"], required: true },
     category:[
       {
-        categoryId: { type: String, required: true },
+        categoryId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true
+        },
         _id: false
       }
     ],
     downloadCount: { type: Number, default: 0 },
     comments: [
       {
-        commentsId: {type: String, required:true },
+        commentsId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: false
+        },
         _id: false
       }
     ],

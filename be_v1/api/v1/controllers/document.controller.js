@@ -3,10 +3,14 @@ const express = require("express");
 const fs = require("fs");
 const User = require("../models/user.model");
 const path = require("path");
+const mongoose = require("mongoose");
 const multer = require("multer");
 const {
   createClient
 } = require("@supabase/supabase-js");
+const {
+  query
+} = require("express-validator");
 // Cấu hình Supabase
 const SUPABASE_URL = "https://jcrxndjvwrxpuntjwkze.supabase.co";
 const SUPABASE_KEY =
@@ -37,10 +41,7 @@ module.exports.upload = async (req, res) => {
       type,
       category
     } = req.body;
-    const user = await User.findOne({
-      _id: req.user.userId,
-      deleted: false
-    });
+    const user = req.user;
     if (!req.file) {
       return res.status(400).json({
         error: "Vui lòng chọn file để upload!"
@@ -50,15 +51,18 @@ module.exports.upload = async (req, res) => {
     if (category) {
       if (typeof category === "string") {
         try {
-          categoryArr = JSON.parse(category);
+          const parsed = JSON.parse(category);
+          categoryArr = parsed.map(item => ({
+            categoryId: new mongoose.Types.ObjectId(item.categoryId || item)
+          }));
         } catch {
           categoryArr = [{
-            categoryId: category
+            categoryId: new mongoose.Types.ObjectId(category)
           }];
         }
       } else if (Array.isArray(category)) {
         categoryArr = category.map(id => ({
-          categoryId: id
+          categoryId: new mongoose.Types.ObjectId(id)
         }));
       }
     }
@@ -207,15 +211,18 @@ module.exports.editDoc = async (req, res) => {
       let categoryArr = [];
       if (typeof updateData.category === "string") {
         try {
-          categoryArr = JSON.parse(updateData.category);
+          const parsed = JSON.parse(updateData.category);
+          categoryArr = parsed.map(item => ({
+            categoryId: mongoose.Types.ObjectId(item.categoryId)
+          }));
         } catch {
           categoryArr = [{
-            categoryId: updateData.category
+            categoryId: mongoose.Types.ObjectId(updateData.category)
           }];
         }
       } else if (Array.isArray(updateData.category)) {
         categoryArr = updateData.category.map(id => ({
-          categoryId: id
+          categoryId: mongoose.Types.ObjectId(id)
         }));
       }
       updateData.category = categoryArr;
@@ -321,7 +328,7 @@ exports.getDocByIdUser = async (req, res) => {
       uploadedBy: targetUser._id
     };
 
-    if (currentUser.role !== "admin" && currentUser._id.toString() !== idUser){
+    if (currentUser.role !== "admin" && currentUser._id.toString() !== idUser) {
       query.check = "accept";
     }
 
@@ -341,3 +348,45 @@ exports.getDocByIdUser = async (req, res) => {
     });
   }
 }
+
+exports.getByCategory = async (req, res) => {
+  try {
+    const {
+      categoryId
+    } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({
+        message: "categoryId không hợp lệ."
+      });
+    }
+
+    const query = {
+      category: {
+        $elemMatch: {
+          categoryId: new mongoose.Types.ObjectId(categoryId)
+        }
+      }
+    };
+
+    if (req.user.role !== "admin") {
+      query.check = "accept";
+    }
+
+    const documents = await Document.find(query);
+
+    res.status(200).json({
+      user: req.user,
+      message: "Lấy tài liệu theo danh mục thành công.",
+      count: documents.length,
+      documents
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi tìm tài liệu theo category:", error);
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
+  }
+};
