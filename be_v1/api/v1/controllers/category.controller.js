@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 const Document = require("../models/document.model");
 const Post = require("../models/post.model");
+const mongoose = require("mongoose");
 
 // Lấy tất cả category
 exports.getAllCategories = async (req, res) => {
@@ -148,5 +149,34 @@ exports.deleteCategoryByAdmin = async (req, res) => {
         res.status(200).json({ message: "ADMIN đã xóa danh mục thành công" });
     } catch (error) {
         res.status(500).json({ message: "Lỗi ADMIN khi xóa danh mục", error: error.message });
+    }
+};
+
+// Lấy thông tin category theo id
+exports.getCategoryById = async (req, res) => {
+    try {
+        const categoryId = req.params.idCategory;
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+            return res.status(400).json({
+                message: "idCategory không hợp lệ."
+            });
+        }
+
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).json({
+                message: "Không tìm thấy danh mục."
+            });
+        }
+
+        res.status(200).json({
+            message: "Lấy danh mục thành công",
+            category
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Lỗi khi lấy danh mục",
+            error: error.message
+        });
     }
 };
