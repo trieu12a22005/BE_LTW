@@ -106,10 +106,9 @@ module.exports.upload = async (req, res) => {
       title,
       description,
       type,
-      //Subject,
       category: categoryArr,
       fileUrl,
-      uploadedBy: user.userId,
+      uploadedBy:user.username,
     });
 
     await document.save();
