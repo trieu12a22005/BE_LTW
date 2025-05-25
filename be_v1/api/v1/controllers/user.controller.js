@@ -111,8 +111,8 @@ module.exports.login = async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "Strict",
+     // secure: process.env.NODE_ENV === "production", // hoặc secure: false nếu local
+  sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
