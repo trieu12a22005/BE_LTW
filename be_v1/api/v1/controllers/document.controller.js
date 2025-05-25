@@ -130,17 +130,26 @@ module.exports.upload = async (req, res) => {
 };
 module.exports.listDocs = async (req, res) => {
   try {
-    const documents = await Document.find({
-      check: "accept"
+    const page = parseInt(req.query.page) || 1;
+    const limit = 9;
+    const skip = (page - 1) * limit;
+
+    const [documents, total] = await Promise.all([
+      Document.find({ check: "accept" }).skip(skip).limit(limit),
+      Document.countDocuments({ check: "accept" })
+    ]);
+
+    res.json({
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      count: documents.length,
+      documents
     });
-    res.json(documents);
   } catch (error) {
-    console.error("Lỗi upload file:", error);
-    res.status(500).json({
-      error: "Lỗi khi upload file"
-    });
+    res.status(500).json({ error: "Lỗi server" });
   }
-}
+};
 module.exports.detailDoc = async (req, res) => {
   try {
     const doc_id = req.params.id;
@@ -341,3 +350,39 @@ exports.getDocByIdUser = async (req, res) => {
     });
   }
 }
+exports.findDoc = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ message: "Vui lòng nhập từ khóa tìm kiếm." });
+    }
+
+    const regex = new RegExp(query, "i");
+    const filter = {
+      $or: [
+        { title: { $regex: regex } },
+        { description: { $regex: regex } },
+        { "category.categoryId": query }
+      ]
+    };
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = 9;
+    const skip = (page - 1) * limit;
+
+    const [documents, total] = await Promise.all([
+      Document.find(filter).skip(skip).limit(limit),
+      Document.countDocuments(filter)
+    ]);
+
+    res.status(200).json({
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      count: documents.length,
+      documents
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
