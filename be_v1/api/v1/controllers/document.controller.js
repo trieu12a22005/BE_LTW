@@ -5,6 +5,7 @@ const User = require("../models/user.model");
 const Category = require("../models/category.model");
 const path = require("path");
 const mongoose = require("mongoose");
+const Comment = require("../models/comment.model");
 const multer = require("multer");
 const {
   createClient
@@ -227,16 +228,16 @@ module.exports.editDoc = async (req, res) => {
         try {
           const parsed = JSON.parse(updateData.category);
           categoryArr = parsed.map(item => ({
-            categoryId: mongoose.Types.ObjectId(item.categoryId)
+            categoryId: new mongoose.Types.ObjectId(item.categoryId || item)
           }));
         } catch {
           categoryArr = [{
-            categoryId: mongoose.Types.ObjectId(updateData.category)
+            categoryId: new mongoose.Types.ObjectId(updateData.category)
           }];
         }
       } else if (Array.isArray(updateData.category)) {
         categoryArr = updateData.category.map(id => ({
-          categoryId: mongoose.Types.ObjectId(id)
+          categoryId: new mongoose.Types.ObjectId(id)
         }));
       }
       updateData.category = categoryArr;
@@ -257,7 +258,7 @@ module.exports.editDoc = async (req, res) => {
 module.exports.deleteDoc = async (req, res) => {
   try {
     const doc_id = req.params.id;
-    const user_id = req.body.userId;
+    const user_id = req.user.userId
     const user = await User.findById(
       user_id
     )
@@ -400,6 +401,71 @@ exports.getByCategory = async (req, res) => {
     console.error("Lỗi khi tìm tài liệu theo category:", error);
     res.status(500).json({
       message: "Lỗi server",
+      error: error.message
+    });
+  }
+};
+
+exports.addComment = async (req, res) => {
+  try {
+    const {
+      docId
+    } = req.params;
+    const {
+      commentId
+    } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(docId) || !mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.status(400).json({
+        message: "ID không hợp lệ"
+      });
+    }
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({
+        message: "Không tìm thấy comment"
+      });
+    }
+
+    if (comment.toDocOrPost !== docId) {
+      return res.status(400).json({
+        message: "Comment không thuộc document này"
+      });
+    }
+
+    if (comment.toReply) {
+      return res.status(400).json({
+        message: "Không thể thêm reply vào document"
+      });
+    }
+
+    const updatedDoc = await Document.findByIdAndUpdate(
+      docId, {
+        $push: {
+          comments: {
+            commentsId: commentId
+          }
+        }
+      }, {
+        new: true
+      }
+    );
+
+    if (!updatedDoc) {
+      return res.status(404).json({
+        message: "Không tìm thấy document"
+      });
+    }
+
+    res.status(200).json({
+      message: "Đã thêm comment vào document",
+      document: updatedDoc,
+    });
+  } catch (error) {
+    console.error("Lỗi addComment:", error);
+    res.status(500).json({
+      message: "Lỗi khi thêm comment",
       error: error.message
     });
   }
