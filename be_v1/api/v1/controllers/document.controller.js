@@ -2,6 +2,7 @@ const Document = require("../models/document.model");
 const express = require("express");
 const fs = require("fs");
 const User = require("../models/user.model");
+const Category = require("../models/category.model");
 const path = require("path");
 const mongoose = require("mongoose");
 const multer = require("multer");
@@ -65,6 +66,19 @@ module.exports.upload = async (req, res) => {
           categoryId: new mongoose.Types.ObjectId(id)
         }));
       }
+    }
+
+    // kiem tra category co hop le khong
+    const categoryIds = categoryArr.map(c => c.categoryId);
+    const foundCategories = await Category.find({
+      _id: {
+        $in: categoryIds
+      }
+    });
+    if (foundCategories.length !== categoryIds.length) {
+      return res.status(400).json({
+        error: "categoryId không tồn tại, vui lòng kiểm tra lạilại."
+      });
     }
 
     // Kiểm tra loại file có hợp lệ không
