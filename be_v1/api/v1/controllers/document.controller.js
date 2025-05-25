@@ -1,8 +1,13 @@
 const Document = require("../models/document.model");
 const express = require("express");
 const User = require("../models/user.model");
+const Category = require("../models/category.model");
+const Comment = require("../models/comment.model");
+const path = require("path");
+const mongoose = require("mongoose");
 const multer = require("multer");
 const { createClient } = require("@supabase/supabase-js");
+
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const BUCKET_NAME = process.env.BUCKET_NAME;
@@ -19,7 +24,8 @@ const allowedMIMETypes = [
 
 exports.uploadFile = async (req, res) => {
   try {
-    const { title, description, type, category, Subject } = req.body;
+
+    const { title, description, type, category} = req.body;
     const user = await User.findById(req.user.userId);
     if (!user) return res.status(403).json({ error: "Người dùng không tồn tại" });
     if (!req.file) return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
@@ -29,11 +35,34 @@ exports.uploadFile = async (req, res) => {
     let categoryArr = [];
     if (category) {
       if (typeof category === "string") {
-        try { categoryArr = JSON.parse(category); }
-        catch { categoryArr = [{ categoryId: category }]; }
+        try {
+          const parsed = JSON.parse(category);
+          categoryArr = parsed.map(item => ({
+            categoryId: new mongoose.Types.ObjectId(item.categoryId || item)
+          }));
+        } catch {
+          categoryArr = [{
+            categoryId: new mongoose.Types.ObjectId(category)
+          }];
+        }
       } else if (Array.isArray(category)) {
-        categoryArr = category.map(id => ({ categoryId: id }));
+        categoryArr = category.map(id => ({
+          categoryId: new mongoose.Types.ObjectId(id)
+        }));
       }
+    }
+
+    // kiem tra category co hop le khong
+    const categoryIds = categoryArr.map(c => c.categoryId);
+    const foundCategories = await Category.find({
+      _id: {
+        $in: categoryIds
+      }
+    });
+    if (foundCategories.length !== categoryIds.length) {
+      return res.status(400).json({
+        error: "categoryId không tồn tại, vui lòng kiểm tra lại."
+      });
     }
 
     const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
@@ -52,7 +81,7 @@ exports.uploadFile = async (req, res) => {
       title,
       description,
       type,
-      Subject,  // Thêm nếu schema yêu cầu
+      //Subject,  // Thêm nếu schema yêu cầu
       category: categoryArr,
       fileUrl,
       uploadedBy: user._id
@@ -154,15 +183,18 @@ module.exports.editDoc = async (req, res) => {
       let categoryArr = [];
       if (typeof updateData.category === "string") {
         try {
-          categoryArr = JSON.parse(updateData.category);
+          const parsed = JSON.parse(updateData.category);
+          categoryArr = parsed.map(item => ({
+            categoryId: new mongoose.Types.ObjectId(item.categoryId || item)
+          }));
         } catch {
           categoryArr = [{
-            categoryId: updateData.category
+            categoryId: new mongoose.Types.ObjectId(updateData.category)
           }];
         }
       } else if (Array.isArray(updateData.category)) {
         categoryArr = updateData.category.map(id => ({
-          categoryId: id
+          categoryId: new mongoose.Types.ObjectId(id)
         }));
       }
       updateData.category = categoryArr;
@@ -183,7 +215,7 @@ module.exports.editDoc = async (req, res) => {
 module.exports.deleteDoc = async (req, res) => {
   try {
     const doc_id = req.params.id;
-    const user_id = req.body.userId;
+    const user_id = req.user.userId
     const user = await User.findById(
       user_id
     )
@@ -268,7 +300,7 @@ exports.getDocByIdUser = async (req, res) => {
       uploadedBy: targetUser._id
     };
 
-    if (currentUser.role !== "admin" && currentUser._id.toString() !== idUser){
+    if (currentUser.role !== "admin" && currentUser._id.toString() !== idUser) {
       query.check = "accept";
     }
 
@@ -288,6 +320,7 @@ exports.getDocByIdUser = async (req, res) => {
     });
   }
 }
+
 exports.findDoc = async (req, res) => {
   try {
     const { query } = req.query;
@@ -323,4 +356,120 @@ exports.findDoc = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Lỗi server" });
   }
+}
+
+exports.getByCategory = async (req, res) => {
+  try {
+    const {
+      categoryId
+    } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({
+        message: "categoryId không hợp lệ."
+      });
+    }
+
+    const query = {
+      category: {
+        $elemMatch: {
+          categoryId: new mongoose.Types.ObjectId(categoryId)
+        }
+      }
+    };
+    const user = await User.findById(req.user.userId);
+
+    if (user.role !== "admin") {
+      query.check = "accept";
+    }
+
+    const documents = await Document.find(query).sort({
+      createdAt: -1 //sap tai lieu moi len dau
+    });;
+
+    if (documents.length === 0) {
+      return res.status(404).json({
+        message: "Không tìm thấy tài liệu thuộc category này."
+      });
+    }
+
+    res.status(200).json({
+      user: req.user,
+      message: "Lấy tài liệu theo danh mục thành công.",
+      count: documents.length,
+      documents
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi tìm tài liệu theo category:", error);
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
+  }
 };
+
+exports.addComment = async (req, res) => {
+  try {
+    const {
+      docId
+    } = req.params;
+    const {
+      commentId
+    } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(docId) || !mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.status(400).json({
+        message: "ID không hợp lệ"
+      });
+    }
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({
+        message: "Không tìm thấy comment"
+      });
+    }
+
+    if (comment.toDocOrPost !== docId) {
+      return res.status(400).json({
+        message: "Comment không thuộc document này"
+      });
+    }
+
+    if (comment.toReply) {
+      return res.status(400).json({
+        message: "Không thể thêm reply vào document"
+      });
+    }
+
+    const updatedDoc = await Document.findByIdAndUpdate(
+      docId, {
+        $push: {
+          comments: {
+            commentsId: commentId
+          }
+        }
+      }, {
+        new: true
+      }
+    );
+
+    if (!updatedDoc) {
+      return res.status(404).json({
+        message: "Không tìm thấy document"
+      });
+    }
+
+    res.status(200).json({
+      message: "Đã thêm comment vào document",
+      document: updatedDoc,
+    });
+  } catch (error) {
+    console.error("Lỗi addComment:", error);
+    res.status(500).json({
+      message: "Lỗi khi thêm comment",
+      error: error.message
+    });
+  }
+}

@@ -12,6 +12,7 @@ router.get("/Admin/getByCheck/:status", checkAdmin, controllers.getPostByCheck);
 router.patch("/Admin/update/:idPost/check", checkAdmin, controllers.updatePostCheck);
 router.patch("/update/:idPost/info", verifyToken, controllers.updatePost);
 router.delete("/delete/:idPost", verifyToken, controllers.deletePost);
+router.patch("/addComment/:postId", verifyToken, controllers.addComment);
 //router.patch
 
 module.exports = router;

@@ -5,6 +5,7 @@ const CommentSchema = new mongoose.Schema(
     idUser: {type: String, require: true},
     content: {type: String, require: true},
     toReply: {type: String, require: false},
+    isDelete: {type: Boolean, default: false, require: false}
   },
   { timestamps: true }
 );

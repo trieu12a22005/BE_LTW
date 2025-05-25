@@ -7,7 +7,10 @@ const PostsSchema = new mongoose.Schema(
     author: { type: String},
     category:[
       {
-        categoryId: { type: String, required: true },
+        categoryId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true
+        },
         _id: false
       }
     ],
@@ -16,7 +19,10 @@ const PostsSchema = new mongoose.Schema(
     check: {type: String, enum: ["waiting", "delete", "accept"], default: "waiting"},
     comments: [
       {
-        commentsId: {type: String, required:true },
+        commentsId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true
+        },
         _id: false
       }
     ]

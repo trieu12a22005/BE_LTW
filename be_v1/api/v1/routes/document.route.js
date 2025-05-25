@@ -10,6 +10,10 @@ router.patch("/update/:id", verifyToken, controllers.editDoc);
 router.delete("/delete/:id", verifyToken, controllers.deleteDoc);
 router.get("/admin/:check", verifyToken, controllers.filterDocuments);
 router.get("/getByIdUser/:idUser", verifyToken, controllers.getDocByIdUser);
+
 router.get("/find", verifyToken, controllers.findDoc);
+
+router.get("/byCategory/:categoryId", verifyToken, controllers.getByCategory);
+router.patch("/addComment/:docId", verifyToken, controllers.addComment);
 
 module.exports = router;
