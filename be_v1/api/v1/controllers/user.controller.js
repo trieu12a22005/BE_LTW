@@ -1,4 +1,4 @@
-const bcrypt = require("bcrypt"); // ✅ Import bcrypt
+const bcrypt = require("bcryptjs"); // ✅ Import bcrypt
 const User = require("../models/user.model");
 const jwt = require("jsonwebtoken");
 const generateHelper = require("../../../helpers/generate");
