@@ -8,9 +8,6 @@ module.exports.register = async (req, res) => {
   try {
     const { username, fullName, email, password, birthday, phone, role } =
       req.body;
-
-    console.log("Dữ liệu nhận được:", req.body); // ✅ Log kiểm tra dữ liệu
-
     // Kiểm tra xem email đã tồn tại chưa
     const existEmail = await User.findOne({ email, deleted: false });
     if (existEmail) {
@@ -33,8 +30,6 @@ module.exports.register = async (req, res) => {
     });
 
     await user.save();
-    console.log("User đã tạo:", user);
-
     // ✅ Tạo JWT token
     const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
       expiresIn: "7d",
@@ -57,12 +52,10 @@ module.exports.register = async (req, res) => {
 module.exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(email);
     const user = await User.findOne({ email, deleted: false });
     if (!user) {
       return res.status(400).json({ message: "Email không tồn tại!" });
     }
-    console.log(user.password);
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ code: 400, message: "Sai mật khẩu" });
@@ -234,7 +227,6 @@ module.exports.detailUser = async (req, res) => {
   }
 };
 module.exports.upDateInfo = async (req, res) => {
-  console.log(req.user.userId);
   delete updateData.password;
   delete updateData.email;
   try {

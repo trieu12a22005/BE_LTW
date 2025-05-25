@@ -132,7 +132,7 @@ module.exports.detailDoc = async(req,res) =>{
 module.exports.editDoc = async(req,res) => {
   try{
     const doc_id = req.params.id;
-    const user_id = req.body.userId;
+    const user_id = req.user.userId;
     const updateData = req.body;
     const user =  await User.findById(
       user_id
@@ -222,6 +222,15 @@ module.exports.deleteDoc = async(req,res) =>{
   }
 }
 exports.filterDocuments = async (req, res) => {
+  const user =  await User.findById(
+    req.user.userId
+  )
+  if (!user)
+  {
+    return res.status(400).json({
+      message: "Không tìm thấy user"
+    })
+  }
   if (user.role!=="admin")
   {
     return res.status(400).json({
@@ -231,6 +240,12 @@ exports.filterDocuments = async (req, res) => {
   try {
     const { check } = req.params;
     const filter = {};
+    if (!check)
+    {
+      res.status(400).json({
+        message: "Không có params"
+      })
+    }
     if (check) {
       filter.check = check; // ví dụ: 'waiting', 'accept', 'reject'
     }

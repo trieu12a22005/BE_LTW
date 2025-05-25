@@ -11,7 +11,7 @@ router.get("",verifyToken, controllers.listDocs);
 router.get("/detail/:id", verifyToken, controllers.detailDoc);
 router.patch("/update/:id", verifyToken, controllers.editDoc);
 router.delete("/delete/:id",verifyToken,controllers.deleteDoc);
-router.get("/admin/:check", verifyToken, controllers.filterDocuments
-)
+router.get("/admin/:check", verifyToken, controllers.filterDocuments)
+// router.get("/admin/:status",verifyToken, controllers.filterDocuments)
 module.exports = router;
 
