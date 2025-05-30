@@ -7,6 +7,7 @@ const path = require("path");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const { createClient } = require("@supabase/supabase-js");
+const axios = require("axios");
 
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
@@ -125,10 +126,13 @@ module.exports.detailDoc = async (req, res) => {
         message: "Không có id tài liệu"
       });
     }
+
+    const user = await User.findById(req.user.userId)
+
     const document = await Document.findById(
       doc_id
     )
-    if (!document) {
+    if ((!document) || (document.check !== "accept" && user.role !== "admin")) {
       return res.status(404).json({
         message: "Không tìm thấy tài liệu"
       });
@@ -243,6 +247,12 @@ module.exports.deleteDoc = async (req, res) => {
         message: "Không tìm thấy tài liệu đã xóa"
       })
     }
+
+    // Xóa các bìnhh luận liên quan đến documentdocument
+    await Comment.deleteMany({
+      toDocOrPost: doc_id
+    });
+
     res.status(200).json({
       code: 200,
       message: "xóa tài liệu thành công"
@@ -482,3 +492,43 @@ exports.addComment = async (req, res) => {
     });
   }
 }
+
+exports.downloadDoc = async (req, res) => {
+  try {
+    const {
+      id
+    } = req.params;
+
+    const doc = await Document.findById(id);
+    if (!doc) {
+      return res.status(404).json({
+        message: "Không tìm thấy tài liệu"
+      });
+    }
+
+    // Tăng lượt tải MỖI LẦN TẢI
+    doc.downloadCount += 1;
+    await doc.save();
+
+    // Lấy nội dung file từ Supabase
+    const response = await axios.get(doc.fileUrl, {
+      responseType: 'stream'
+    });
+
+    // Đổi tên file cho an toàn
+    const safeFileName = doc.title.replace(/[^a-z0-9_\-\.]/gi, '_');
+
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
+    res.setHeader('Content-Type', response.headers['content-type']);
+    response.data.pipe(res);
+
+  } catch (error) {
+    console.error("Lỗi khi tải tài liệu:", error);
+    res.status(500).json({
+      message: "Không thể tải file",
+      error: error.message
+    });
+  }
+};
+
+

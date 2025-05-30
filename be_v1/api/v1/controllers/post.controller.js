@@ -4,6 +4,7 @@ const User = require("../models/user.model");
 const Comment = require("../models/comment.model");
 const mongoose = require("mongoose");
 const Category = require("../models/category.model");
+const { findById } = require("../models/document.model");
 
 // Lấy danh sách posts 
 exports.getPost = async (req, res) => {
@@ -140,6 +141,11 @@ exports.deletePost = async (req, res) => {
     post.check = "delete";
     await post.save();
 
+    //Xóa các bình luận liên quan
+    await Comment.deleteMany({
+      toDocOrPost: idPost
+    });
+
     res.json({ message: "Bài viết đã bị đánh dấu xoá", post });
   } catch (error) {
     res.status(500).json({ message: "Lỗi khi xoá bài viết", error: error.message });
@@ -210,3 +216,48 @@ exports.addComment = async (req, res) => {
     });
   }
 };
+
+exports.getPostById = async (req, res) => {
+  try {
+    const {
+      idPost
+    } = req.params;
+    const user = await User.findById( req.user.userId)
+
+    const post = await Post.findById(idPost);
+    if (!post) {
+      return res.status(404).json({
+        message: "Không tìm thấy bài viết"
+      });
+    }
+
+    // Nếu không phải admin và bài đã bị xoá → ẩn nội dung
+    if (post.check === "delete" && user.role !== "admin") {
+      return res.status(200).json({
+        post: {
+          _id: post._id,
+          title: "Bài viết đã bị xoá",
+          content: "",
+          category: post.category,
+          author: post.author,
+          check: post.check,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt
+        }
+      });
+    }
+
+    // Nếu là admin hoặc bài chưa bị xoá → trả về đầy đủ
+    res.status(200).json({
+      post
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi lấy bài viết theo ID:", error);
+    res.status(500).json({
+      message: "Lỗi server khi lấy bài viết",
+      error: error.message
+    });
+  }
+};
+
