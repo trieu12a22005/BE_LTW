@@ -16,7 +16,7 @@ router.get("/find", verifyToken, controllers.findDoc);
 router.get("/byCategory/:categoryId", verifyToken, controllers.getByCategory);
 router.patch("/addComment/:docId", verifyToken, controllers.addComment);
 
-router.get("/download/:id", /*verifyToken, */controllers.downloadDoc);
+router.get("/download/:id", verifyToken, controllers.downloadDoc);
 
 router.post("/rate/:idDocument", verifyToken, controllers.rateDocument);
 
