@@ -16,7 +16,6 @@ router.get("/find", verifyToken, controllers.findDoc);
 router.get("/byCategory/:categoryId", verifyToken, controllers.getByCategory);
 router.patch("/addComment/:docId", verifyToken, controllers.addComment);
 
-router.patch("/increaseDownloadOnce/:id", verifyToken, controllers.increaseDownloadOnce);
 router.get("/download/:id", verifyToken, controllers.downloadDoc);
 
 module.exports = router;
