@@ -164,6 +164,7 @@ module.exports.detailDoc = async (req, res) => {
     const document = await Document.findById(
       doc_id
     )
+    
     if ((!document) || (document.check !== "accept" && user.role !== "admin")) {
       return res.status(404).json({
         message: "Không tìm thấy tài liệu"
