@@ -18,4 +18,6 @@ router.patch("/addComment/:docId", verifyToken, controllers.addComment);
 
 router.get("/download/:id", verifyToken, controllers.downloadDoc);
 
+router.post("/rate/:idDocument", verifyToken, controllers.rateDocument);
+
 module.exports = router;

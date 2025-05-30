@@ -535,4 +535,61 @@ exports.downloadDoc = async (req, res) => {
   }
 };
 
+exports.rateDocument = async (req, res) => {
+  try {
+    const {
+      idDocument
+    } = req.params; // ID tài liệu
+    const {
+      score
+    } = req.body; // điểm đánh giá
+    const userId = req.user.userId;
+
+    // Kiểm tra điểm hợp lệ (số nguyên 1–5)
+    if (!score || score < 1 || score > 5 || !Number.isInteger(score)) {
+      return res.status(400).json({
+        message: "Điểm đánh giá phải là số nguyên từ 1 đến 5"
+      });
+    }
+
+    const document = await Document.findById(idDocument);
+    if (!document) {
+      return res.status(404).json({
+        message: "Không tìm thấy tài liệu"
+      });
+    }
+
+    // Kiểm tra đã đánh giá chưa
+    const alreadyRated = document.ratings.some(r => r.idUser === userId);
+    if (alreadyRated) {
+      return res.status(403).json({
+        message: "Bạn đã đánh giá tài liệu này rồi"
+      });
+    }
+
+    // Chưa đánh giá => thêm vào
+    document.ratings.push({
+      idUser: userId,
+      score
+    });
+
+    // Cập nhật điểm trung bình
+    document.updateAverageRating();
+
+    await document.save();
+
+    res.status(200).json({
+      message: "Đánh giá thành công",
+      avgRating: document.avgRating,
+      ratings: document.ratings
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi đánh giá tài liệu:", error);
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
+  }
+};
 
