@@ -244,6 +244,12 @@ module.exports.deleteDoc = async (req, res) => {
         message: "Không tìm thấy tài liệu đã xóa"
       })
     }
+
+    // Xóa các bìnhh luận liên quan đến documentdocument
+    await Comment.deleteMany({
+      toDocOrPost: doc_id
+    });
+
     res.status(200).json({
       code: 200,
       message: "xóa tài liệu thành công"

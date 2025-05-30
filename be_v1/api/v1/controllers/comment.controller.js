@@ -154,7 +154,7 @@ exports.deleteComment = async (req, res) => {
     // Đánh dấu tất cả con, cháu...
     await markRecursive(comment._id);
 
-    // ===== XÓA THẬT: toàn bộ comment isDelete = true =====
+    // ===== Xoá toàn bộ comment isDelete = true =====
     const result = await Comment.deleteMany({
       isDelete: true
     });
