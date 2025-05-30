@@ -6,7 +6,9 @@ const Comment = require("../models/comment.model");
 const path = require("path");
 const mongoose = require("mongoose");
 const multer = require("multer");
-const { createClient } = require("@supabase/supabase-js");
+const {
+  createClient
+} = require("@supabase/supabase-js");
 const axios = require("axios");
 
 
@@ -14,7 +16,9 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 const BUCKET_NAME = process.env.BUCKET_NAME;
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+  storage
+});
 exports.uploadMiddleware = upload.single("file");
 
 const allowedMIMETypes = [
@@ -26,12 +30,23 @@ const allowedMIMETypes = [
 exports.uploadFile = async (req, res) => {
   try {
 
-    const { title, description, type, category } = req.body;
+    const {
+      title,
+      description,
+      type,
+      category
+    } = req.body;
     const user = await User.findById(req.user.userId);
-    if (!user) return res.status(403).json({ error: "Người dùng không tồn tại" });
-    if (!req.file) return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
+    if (!user) return res.status(403).json({
+      error: "Người dùng không tồn tại"
+    });
+    if (!req.file) return res.status(400).json({
+      error: "Vui lòng chọn file để upload!"
+    });
     if (!allowedMIMETypes.includes(req.file.mimetype))
-      return res.status(400).json({ error: "File không hợp lệ" });
+      return res.status(400).json({
+        error: "File không hợp lệ"
+      });
 
     let categoryArr = [];
     if (category) {
@@ -67,15 +82,21 @@ exports.uploadFile = async (req, res) => {
     }
 
     const fileName = `uploads/${Date.now()}-${req.file.originalname}`;
-    const { error } = await supabase.storage
+    const {
+      error
+    } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(fileName, req.file.buffer, {
         contentType: req.file.mimetype,
         upsert: true
       });
-    if (error) return res.status(500).json({ error: "Lỗi upload Supabase" });
+    if (error) return res.status(500).json({
+      error: "Lỗi upload Supabase"
+    });
 
-    const { data: publicUrlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+    const {
+      data: publicUrlData
+    } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
     const fileUrl = publicUrlData.publicUrl;
 
     const document = new Document({
@@ -89,10 +110,15 @@ exports.uploadFile = async (req, res) => {
     });
     await document.save();
 
-    res.status(200).json({ message: "Upload thành công!", document });
+    res.status(200).json({
+      message: "Upload thành công!",
+      document
+    });
   } catch (error) {
     console.error("Lỗi upload:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message
+    });
   }
 };
 
@@ -103,8 +129,12 @@ module.exports.listDocs = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const [documents, total] = await Promise.all([
-      Document.find({ check: "accept" }).skip(skip).limit(limit),
-      Document.countDocuments({ check: "accept" })
+      Document.find({
+        check: "accept"
+      }).skip(skip).limit(limit),
+      Document.countDocuments({
+        check: "accept"
+      })
     ]);
 
     res.json({
@@ -115,7 +145,9 @@ module.exports.listDocs = async (req, res) => {
       documents
     });
   } catch (error) {
-    res.status(500).json({ error: "Lỗi server" });
+    res.status(500).json({
+      error: "Lỗi server"
+    });
   }
 };
 module.exports.detailDoc = async (req, res) => {
@@ -137,6 +169,13 @@ module.exports.detailDoc = async (req, res) => {
         message: "Không tìm thấy tài liệu"
       });
     }
+
+    // Tăng lượt xem nếu không phải admin hoặc chính chủ
+    if (user._id.toString() !== document.uploadedBy && user.role !== "admin") {
+      document.views += 1;
+      await document.save();
+    }
+
     res.status(200).json({
       document
     })
@@ -333,29 +372,44 @@ exports.getDocByIdUser = async (req, res) => {
 
 exports.findDoc = async (req, res) => {
   try {
-    const { query } = req.query;
+    const {
+      query
+    } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 9;
     const skip = (page - 1) * limit;
 
     if (!query) {
-      return res.status(400).json({ message: "Vui lòng nhập từ khóa tìm kiếm." });
+      return res.status(400).json({
+        message: "Vui lòng nhập từ khóa tìm kiếm."
+      });
     }
 
     const regex = new RegExp(query, 'i'); // Regex tìm kiếm không phân biệt hoa thường
 
     // Xây dựng filter
-    const orConditions = [
-      { title: { $regex: regex } },
-      { description: { $regex: regex } }
+    const orConditions = [{
+        title: {
+          $regex: regex
+        }
+      },
+      {
+        description: {
+          $regex: regex
+        }
+      }
     ];
 
     // Nếu query là ObjectId hợp lệ, thêm điều kiện categoryId
     if (mongoose.Types.ObjectId.isValid(query)) {
-      orConditions.push({ "category.categoryId": mongoose.Types.ObjectId(query) });
+      orConditions.push({
+        "category.categoryId": mongoose.Types.ObjectId(query)
+      });
     }
 
-    const filter = { $or: orConditions };
+    const filter = {
+      $or: orConditions
+    };
 
     // Truy vấn dữ liệu
     const [documents, total] = await Promise.all([
@@ -364,16 +418,19 @@ exports.findDoc = async (req, res) => {
     ]);
 
     res.status(200).json({
-      total,                  // Tổng số tài liệu
-      page,                   // Trang hiện tại
-      pages: Math.ceil(total / limit),  // Tổng số trang
+      total, // Tổng số tài liệu
+      page, // Trang hiện tại
+      pages: Math.ceil(total / limit), // Tổng số trang
       count: documents.length, // Số tài liệu trong trang hiện tại
-      documents               // Danh sách tài liệu
+      documents // Danh sách tài liệu
     });
 
   } catch (error) {
     console.error("Lỗi trong findDoc:", error);
-    res.status(500).json({ message: "Lỗi server", error });
+    res.status(500).json({
+      message: "Lỗi server",
+      error
+    });
   }
 };
 
@@ -468,14 +525,14 @@ exports.addComment = async (req, res) => {
 
     const updatedDoc = await Document.findByIdAndUpdate(
       docId, {
-      $push: {
-        comments: {
-          commentsId: commentId
+        $push: {
+          comments: {
+            commentsId: commentId
+          }
         }
+      }, {
+        new: true
       }
-    }, {
-      new: true
-    }
     );
 
     if (!updatedDoc) {
@@ -592,4 +649,3 @@ exports.rateDocument = async (req, res) => {
     });
   }
 };
-

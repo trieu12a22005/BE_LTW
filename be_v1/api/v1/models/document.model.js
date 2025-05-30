@@ -60,17 +60,28 @@ const docSchema = new mongoose.Schema({
   avgRating: {
     type: Number,
     default: null
-  }
+  },
+  countRatings: {
+    type: Number,
+    default: 0
+  },
+  views: {
+    type: Number,
+    default: 0
+  }  
 }, {
   timestamps: true
 });
 
 docSchema.methods.updateAverageRating = function () {
-  if (this.ratings.length === 0) {
+  const totalRatings = this.ratings.length;
+  this.countRatings = totalRatings;
+
+  if (totalRatings === 0) {
     this.avgRating = null;
   } else {
-    const total = this.ratings.reduce((sum, r) => sum + r.score, 0);
-    this.avgRating = parseFloat((total / this.ratings.length).toFixed(2));
+    const totalScore = this.ratings.reduce((sum, r) => sum + r.score, 0);
+    this.avgRating = parseFloat((totalScore / totalRatings).toFixed(2));
   }
 };
 
