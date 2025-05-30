@@ -25,7 +25,7 @@ const allowedMIMETypes = [
 exports.uploadFile = async (req, res) => {
   try {
 
-    const { title, description, type, category} = req.body;
+    const { title, description, type, category } = req.body;
     const user = await User.findById(req.user.userId);
     if (!user) return res.status(403).json({ error: "Người dùng không tồn tại" });
     if (!req.file) return res.status(400).json({ error: "Vui lòng chọn file để upload!" });
@@ -324,39 +324,48 @@ exports.getDocByIdUser = async (req, res) => {
 exports.findDoc = async (req, res) => {
   try {
     const { query } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 9;
+    const skip = (page - 1) * limit;
+
     if (!query) {
       return res.status(400).json({ message: "Vui lòng nhập từ khóa tìm kiếm." });
     }
 
-    const regex = new RegExp(query, "i");
-    const filter = {
-      $or: [
-        { title: { $regex: regex } },
-        { description: { $regex: regex } },
-        { "category.categoryId": query }
-      ]
-    };
+    const regex = new RegExp(query, 'i'); // Regex tìm kiếm không phân biệt hoa thường
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = 9;
-    const skip = (page - 1) * limit;
+    // Xây dựng filter
+    const orConditions = [
+      { title: { $regex: regex } },
+      { description: { $regex: regex } }
+    ];
 
+    // Nếu query là ObjectId hợp lệ, thêm điều kiện categoryId
+    if (mongoose.Types.ObjectId.isValid(query)) {
+      orConditions.push({ "category.categoryId": mongoose.Types.ObjectId(query) });
+    }
+
+    const filter = { $or: orConditions };
+
+    // Truy vấn dữ liệu
     const [documents, total] = await Promise.all([
       Document.find(filter).skip(skip).limit(limit),
       Document.countDocuments(filter)
     ]);
 
     res.status(200).json({
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      count: documents.length,
-      documents
+      total,                  // Tổng số tài liệu
+      page,                   // Trang hiện tại
+      pages: Math.ceil(total / limit),  // Tổng số trang
+      count: documents.length, // Số tài liệu trong trang hiện tại
+      documents               // Danh sách tài liệu
     });
+
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server" });
+    console.error("Lỗi trong findDoc:", error);
+    res.status(500).json({ message: "Lỗi server", error });
   }
-}
+};
 
 exports.getByCategory = async (req, res) => {
   try {
@@ -445,14 +454,14 @@ exports.addComment = async (req, res) => {
 
     const updatedDoc = await Document.findByIdAndUpdate(
       docId, {
-        $push: {
-          comments: {
-            commentsId: commentId
-          }
+      $push: {
+        comments: {
+          commentsId: commentId
         }
-      }, {
-        new: true
       }
+    }, {
+      new: true
+    }
     );
 
     if (!updatedDoc) {
