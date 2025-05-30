@@ -389,6 +389,10 @@ exports.getByCategory = async (req, res) => {
       });
     }
 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 9;
+    const skip = (page - 1) * limit;
+
     const query = {
       category: {
         $elemMatch: {
@@ -396,25 +400,25 @@ exports.getByCategory = async (req, res) => {
         }
       }
     };
+
     const user = await User.findById(req.user.userId);
 
     if (user.role !== "admin") {
       query.check = "accept";
     }
 
-    const documents = await Document.find(query).sort({
-      createdAt: -1 //sap tai lieu moi len dau
-    });;
-
-    if (documents.length === 0) {
-      return res.status(404).json({
-        message: "Không tìm thấy tài liệu thuộc category này."
-      });
-    }
+    const [documents, total] = await Promise.all([
+      Document.find(query).sort({
+        createdAt: -1
+      }).skip(skip).limit(limit),
+      Document.countDocuments(query)
+    ]);
 
     res.status(200).json({
-      user: req.user,
-      message: "Lấy tài liệu theo danh mục thành công.",
+      message: "Lấy tài liệu theo danh mục thành công",
+      total,
+      page,
+      pages: Math.ceil(total / limit),
       count: documents.length,
       documents
     });
