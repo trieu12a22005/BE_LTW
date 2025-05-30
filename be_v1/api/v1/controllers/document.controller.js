@@ -7,6 +7,7 @@ const path = require("path");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const { createClient } = require("@supabase/supabase-js");
+const axios = require("axios");
 
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
@@ -473,3 +474,85 @@ exports.addComment = async (req, res) => {
     });
   }
 }
+
+exports.increaseDownloadOnce = async (req, res) => {
+  try {
+    const {
+      id
+    } = req.params;
+    const userId = req.user.userId;
+
+    const doc = await Document.findById(id);
+    if (!doc) return res.status(404).json({
+      message: "Không tìm thấy tài liệu"
+    });
+
+    const hasDownloaded = doc.downloadedBy.some(entry => entry.userIdDownloaded === userId);
+    if (hasDownloaded) {
+      return res.status(200).json({
+        message: "Người dùng đã tải xuống trước đó",
+        document: doc
+      });
+    }
+
+    doc.downloadCount += 1;
+    doc.downloadedBy.push({
+      userIdDownloaded: userId
+    });
+    await doc.save();
+
+    res.status(200).json({
+      message: "Tăng lượt tải thành công",
+      document: doc
+    });
+  } catch (error) {
+    console.error("Lỗi tăng lượt tải:", error);
+    res.status(500).json({
+      error: error.message
+    });
+  }
+};
+
+exports.downloadDoc = async (req, res) => {
+  try {
+    const {
+      id
+    } = req.params;
+    const userId = req.user.userId;
+
+    const doc = await Document.findById(id);
+    if (!doc) return res.status(404).json({
+      message: "Không tìm thấy tài liệu"
+    });
+
+    // Tăng lượt tải nếu chưa từng tải
+    const hasDownloaded = doc.downloadedBy.some(entry => entry.userIdDownloaded === userId);
+    if (!hasDownloaded) {
+      doc.downloadCount += 1;
+      doc.downloadedBy.push({
+        userIdDownloaded: userId
+      });
+      await doc.save();
+    }
+
+    // Lấy nội dung file từ Supabase
+    const response = await axios.get(doc.fileUrl, {
+      responseType: 'stream'
+    });
+
+    // Đổi tên file cho an toàn
+    const safeFileName = doc.title.replace(/[^a-z0-9_\-\.]/gi, '_');
+
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
+    res.setHeader('Content-Type', response.headers['content-type']);
+    response.data.pipe(res);
+
+  } catch (error) {
+    console.error("Lỗi khi tải tài liệu:", error);
+    res.status(500).json({
+      message: "Không thể tải file",
+      error: error.message
+    });
+  }
+};
+

@@ -29,7 +29,13 @@ const docSchema = new mongoose.Schema(
       type: String,
       enum: ["waiting", "reject", "accept"],
       default: "waiting"
-    }
+    },
+    downloadedBy: [{
+      userIdDownloaded: {
+        type: String,
+        required: false
+      }, _id: false
+    }]
   },
   { timestamps: true }
   );
