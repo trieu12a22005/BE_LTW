@@ -126,10 +126,13 @@ module.exports.detailDoc = async (req, res) => {
         message: "Không có id tài liệu"
       });
     }
+
+    const user = await User.findById(req.user.userId)
+
     const document = await Document.findById(
       doc_id
     )
-    if (!document) {
+    if ((!document) || (document.check !== "accept" && user.role !== "admin")) {
       return res.status(404).json({
         message: "Không tìm thấy tài liệu"
       });
