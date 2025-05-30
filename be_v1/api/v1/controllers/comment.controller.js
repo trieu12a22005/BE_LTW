@@ -127,41 +127,61 @@ exports.deleteComment = async (req, res) => {
       });
     }
 
-    // Chỉ cho xóa nếu là chủ comment hoặc admin
     if (comment.idUser !== req.user.userId && req.user.role !== "admin") {
       return res.status(403).json({
         message: "Không có quyền xóa bình luận này"
       });
     }
 
-    // Cập nhật trạng thái bình luận (soft delete)
-    comment.content = "Bình luận này đã bị xóa";
+    // ===== ĐỆ QUY: Đánh dấu tất cả bình luận con =====
+    const markRecursive = async (parentId) => {
+      const children = await Comment.find({
+        toReply: parentId
+      });
+      for (const child of children) {
+        child.isDelete = true;
+        child.content = "Bình luận này đã bị xóa";
+        await child.save();
+        await markRecursive(child._id); // đệ quy tiếp
+      }
+    };
+
+    // Đánh dấu comment cha
     comment.isDelete = true;
+    comment.content = "Bình luận này đã bị xóa";
     await comment.save();
 
-    // Giảm commentsCount nếu là post
-    if (type === "post" && comment.toDocOrPost) {
-      await Post.findByIdAndUpdate(
-        comment.toDocOrPost, {
-          $inc: {
-            commentsCount: -1
-          }
-        }, {
-          new: true
+    // Đánh dấu tất cả con, cháu...
+    await markRecursive(comment._id);
+
+    // ===== XÓA THẬT: toàn bộ comment isDelete = true =====
+    const result = await Comment.deleteMany({
+      isDelete: true
+    });
+
+    // ===== Giảm chính xác commentsCount nếu là POST =====
+    if (type === "post") {
+      await Post.findByIdAndUpdate(comment.toDocOrPost, {
+        $inc: {
+          commentsCount: -result.deletedCount
         }
-      );
+      });
     }
 
     res.json({
-      message: "Đã chuyển trạng thái bình luận thành 'đã xóa'"
+      message: `Đã xóa bình luận và ${result.deletedCount - 1} bình luận con`
     });
+
   } catch (error) {
+    console.error("Lỗi khi xóa bình luận:", error);
     res.status(500).json({
-      message: "Lỗi khi xóa bình luận",
+      message: "Lỗi server khi xóa bình luận",
       error: error.message
     });
   }
 };
+
+
 
 //update comment
 exports.updateComment = async (req, res) => {
