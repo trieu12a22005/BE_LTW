@@ -362,9 +362,8 @@ module.exports.detailUser = async (req, res) => {
       _id: req.user.userId,
       deleted: false
     });
-
-    res.json({
-      idUser: user.userId,
+    return res.json({
+      idUser: req.user.userId,
       fullName: user.fullName,
       email: user.email,
       birthday: user.birthday,
