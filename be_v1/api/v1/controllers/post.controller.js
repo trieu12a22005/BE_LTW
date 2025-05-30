@@ -261,3 +261,53 @@ exports.getPostById = async (req, res) => {
   }
 };
 
+exports.toggleLikePost = async (req, res) => {
+  try {
+    const {
+      idPost
+    } = req.params;
+    const userId = req.user.userId;
+
+    const post = await Post.findById(idPost);
+    if (!post) {
+      return res.status(404).json({
+        message: "Không tìm thấy bài viết"
+      });
+    }
+
+    const index = post.likes.findIndex(like => like.idUser === userId);
+
+    if (index !== -1) {
+      // Đã like → unlike
+      post.likes.splice(index, 1);
+      post.likesCount = post.likes.length;
+
+      await post.save();
+      return res.status(200).json({
+        message: "Đã bỏ like bài viết",
+        liked: false,
+        likesCount: post.likesCount
+      });
+    } else {
+      // Chưa like → thêm like
+      post.likes.push({
+        idUser: userId
+      });
+      post.likesCount = post.likes.length;
+
+      await post.save();
+      return res.status(200).json({
+        message: "Đã like bài viết",
+        liked: true,
+        likesCount: post.likesCount
+      });
+    }
+
+  } catch (error) {
+    console.error("Lỗi toggle like:", error);
+    res.status(500).json({
+      message: "Lỗi server khi toggle like",
+      error: error.message
+    });
+  }
+};

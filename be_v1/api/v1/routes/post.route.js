@@ -15,6 +15,8 @@ router.delete("/delete/:idPost", verifyToken, controllers.deletePost);
 router.patch("/addComment/:postId", verifyToken, controllers.addComment);
 
 router.get("/getById/:idPost", verifyToken, controllers.getPostById);
+
+router.patch("/like/:idPost", verifyToken, controllers.toggleLikePost);
 //router.patch
 
 module.exports = router;
