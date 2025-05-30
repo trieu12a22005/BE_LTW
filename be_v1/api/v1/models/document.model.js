@@ -39,6 +39,10 @@ const docSchema = new mongoose.Schema({
     },
     _id: false
   }],
+  commentsCount: {
+    type: Number,
+    default: 0
+  },
   check: {
     type: String,
     enum: ["waiting", "reject", "accept"],
