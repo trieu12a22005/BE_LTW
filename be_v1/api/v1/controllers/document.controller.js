@@ -554,6 +554,14 @@ exports.addComment = async (req, res) => {
   }
 }
 
+function removeVietnameseTones(str) {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
+
 exports.downloadDoc = async (req, res) => {
   try {
     const {
@@ -567,27 +575,42 @@ exports.downloadDoc = async (req, res) => {
       });
     }
 
-    // Tăng lượt tải MỖI LẦN TẢI
+    // Tăng lượt tải
     doc.downloadCount += 1;
     await doc.save();
 
     // Lấy nội dung file từ Supabase
     const response = await axios.get(doc.fileUrl, {
-      responseType: 'stream'
+      responseType: "stream",
     });
 
-    // Đổi tên file cho an toàn
-    const safeFileName = doc.title.replace(/[^a-z0-9_\-\.]/gi, '_');
+    // // Lấy đuôi file từ URL
+    // const urlPathEncoded = new URL(doc.fileUrl).pathname;
+    // const urlPath = decodeURIComponent(urlPathEncoded);
+    // const ext = path.extname(urlPath);
 
-    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
-    res.setHeader('Content-Type', response.headers['content-type']);
+    // Lấy đuôi file từ URL gốc (không decode)
+    const ext = path.extname(doc.fileUrl);
+
+    // Xử lý title: chuyển về thường, bỏ dấu, thay khoảng trắng và ký tự đặc biệt
+    let title = doc.title || 'file';
+    title = title.toLowerCase();
+    title = removeVietnameseTones(title);
+    title = title.replace(/\s+/g, '-'); // khoảng trắng -> "-"
+    title = title.replace(/[^a-z0-9_.-]/g, '_'); // ký tự đặc biệt -> "_"
+
+    // Thêm đuôi file
+    const safeFileName = title + ext;
+
+    res.setHeader("Content-Disposition", `attachment; filename="${safeFileName}"`);
+    res.setHeader("Content-Type", response.headers["content-type"]);
     response.data.pipe(res);
 
   } catch (error) {
     console.error("Lỗi khi tải tài liệu:", error);
     res.status(500).json({
       message: "Không thể tải file",
-      error: error.message
+      error: error.message,
     });
   }
 };
