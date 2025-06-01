@@ -3,10 +3,13 @@ const mongoose = require("mongoose");
 const reportSchema = new mongoose.Schema({
     idDocument: {
         type: String,
-        required: true,
-        ref: "Document"
+        required: true
     },
-    content: {
+    reason:{
+        type: String,
+        require: true,
+    }, // tieu de
+    description: {
         type: String,
         required: true
     }, // Nội dung báo cáo

@@ -7,5 +7,6 @@ router.post("/create/:idDocument", verifyToken, controllers.reportDocument);
 router.get("/", verifyToken, controllers.getReports);
 router.get("/detail/:id", verifyToken, controllers.getReportById);
 router.delete("/delete/:id", verifyToken, controllers.deleteReport);
+router.get("/search", verifyToken, controllers.searchReportsByReason);
 
 module.exports = router;

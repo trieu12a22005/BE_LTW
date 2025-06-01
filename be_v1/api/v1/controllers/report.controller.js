@@ -8,19 +8,21 @@ exports.reportDocument = async (req, res) => {
             idDocument
         } = req.params;
         const {
-            content
+            reason,
+            description
         } = req.body;
         const userId = req.user.userId;
 
-        if (!idDocument || !content) {
+        if (!idDocument || !reason || !description) {
             return res.status(400).json({
-                message: "Thiếu idDocument hoặc nội dung báo cáo."
+                message: "Thiếu idDocument, reason hoặc description."
             });
         }
 
         const report = new Report({
             idDocument,
-            content,
+            reason,
+            description,
             reportedBy: userId
         });
 
@@ -62,7 +64,39 @@ exports.getReports = async (req, res) => {
     }
 };
 
-// Admin xử lý (xóa) báo cáo
+// Admin hoặc người gửi xem báo cáo theo id
+exports.getReportById = async (req, res) => {
+    try {
+        const {
+            id
+        } = req.params;
+        const user = await User.findById(req.user.userId);
+
+        const report = await Report.findById(id);
+        if (!report) {
+            return res.status(404).json({
+                message: "Không tìm thấy báo cáo."
+            });
+        }
+
+        if (user.role !== "admin" && report.reportedBy !== user._id.toString()) {
+            return res.status(403).json({
+                message: "Bạn không có quyền xem báo cáo này."
+            });
+        }
+
+        res.status(200).json({
+            report
+        });
+    } catch (error) {
+        console.error("Lỗi lấy báo cáo theo id:", error);
+        res.status(500).json({
+            message: "Lỗi server khi lấy báo cáo theo id."
+        });
+    }
+};
+
+// Admin xóa báo cáo
 exports.deleteReport = async (req, res) => {
     try {
         const {
@@ -93,34 +127,53 @@ exports.deleteReport = async (req, res) => {
     }
 };
 
-// Lấy báo cáo theo id
-exports.getReportById = async (req, res) => {
+// Hàm xóa dấu và chuyển về lower-case
+function normalizeText(text) {
+    return text.normalize('NFD') // tách dấu
+        .replace(/[\u0300-\u036f]/g, '') // xóa dấu
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D') // thay đ và Đ
+        .toLowerCase(); // về chữ thường
+}
+
+// Tìm kiếm báo cáo theo reason
+exports.searchReportsByReason = async (req, res) => {
     try {
         const {
-            id
-        } = req.params;
+            reason
+        } = req.query;
         const user = await User.findById(req.user.userId);
 
-        if (user.role !== "admin" && user.role !== "reportedBy") {
+        if (user.role !== "admin") {
             return res.status(403).json({
-                message: "Bạn không có quyền xem báo cáo."
+                message: "Bạn không có quyền tìm kiếm báo cáo."
             });
         }
 
-        const report = await Report.findById(id);
-        if (!report) {
-            return res.status(404).json({
-                message: "Không tìm thấy báo cáo."
+        if (!reason) {
+            return res.status(400).json({
+                message: "Vui lòng cung cấp từ khóa tìm kiếm (reason)."
             });
         }
+
+        // Lấy toàn bộ reports
+        const allReports = await Report.find().sort({
+            createdAt: -1
+        });
+
+        // Lọc dữ liệu theo normalized reason
+        const normalizedQuery = normalizeText(reason);
+        const filteredReports = allReports.filter(report =>
+            normalizeText(report.reason).includes(normalizedQuery)
+        );
 
         res.status(200).json({
-            report
+            total: filteredReports.length,
+            reports: filteredReports
         });
     } catch (error) {
-        console.error("Lỗi lấy báo cáo theo id:", error);
+        console.error("Lỗi tìm kiếm báo cáo:", error);
         res.status(500).json({
-            message: "Lỗi server khi lấy báo cáo theo id."
+            message: "Lỗi server khi tìm kiếm báo cáo."
         });
     }
 };
