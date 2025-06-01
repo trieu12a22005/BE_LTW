@@ -439,29 +439,34 @@ exports.findDoc = async (req, res) => {
 exports.getByCategory = async (req, res) => {
   try {
     const {
-      categoryId
-    } = req.params;
+      category
+    } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+    if (!category || (Array.isArray(category) && category.length === 0)) {
       return res.status(400).json({
-        message: "categoryId không hợp lệ."
+        message: "Vui lòng cung cấp category hoặc danh sách category."
       });
     }
+
+    const categoryIds = Array.isArray(category) ? category : [category];
+    const categoryIdArray = categoryIds.map(id => new mongoose.Types.ObjectId(id.trim()));
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 9;
     const skip = (page - 1) * limit;
 
+    // Sử dụng $all để yêu cầu chứa tất cả categoryId
     const query = {
       category: {
-        $elemMatch: {
-          categoryId: new mongoose.Types.ObjectId(categoryId)
-        }
+        $all: categoryIdArray.map(id => ({
+          $elemMatch: {
+            categoryId: id
+          }
+        }))
       }
     };
 
     const user = await User.findById(req.user.userId);
-
     if (user.role !== "admin") {
       query.check = "accept";
     }
@@ -472,6 +477,12 @@ exports.getByCategory = async (req, res) => {
       }).skip(skip).limit(limit),
       Document.countDocuments(query)
     ]);
+
+    if (total === 0) {
+      return res.status(404).json({
+        message: "Không tìm thấy tài liệu chứa tất cả danh mục đã cung cấp."
+      });
+    }
 
     res.status(200).json({
       message: "Lấy tài liệu theo danh mục thành công",
@@ -485,11 +496,12 @@ exports.getByCategory = async (req, res) => {
   } catch (error) {
     console.error("Lỗi khi tìm tài liệu theo category:", error);
     res.status(500).json({
-      message: "Lỗi server",
+      message: "Lỗi server khi tìm tài liệu theo danh mục",
       error: error.message
     });
   }
 };
+
 
 exports.addComment = async (req, res) => {
   try {
@@ -700,6 +712,43 @@ exports.getReportsForDocument = async (req, res) => {
     console.error("Lỗi lấy báo cáo:", error);
     res.status(500).json({
       message: "Lỗi server khi lấy báo cáo cho document."
+    });
+  }
+};
+
+exports.getAllCategories = async (req, res) => {
+  try {
+    const {
+      idDocument
+    } = req.params;
+    const document = await Document.findById(idDocument);
+
+    if (!document) {
+      return res.status(404).json({
+        message: "Không tìm thấy document."
+      });
+    }
+
+    // Lấy danh sách categoryId từ document
+    const categoryIds = document.category.map(cat => cat.categoryId);
+
+    // Lấy chi tiết các category từ collection Category
+    const categories = await Category.find({
+      _id: {
+        $in: categoryIds
+      }
+    }).sort({
+      name: 1
+    });
+
+    res.status(200).json({
+      total: categories.length,
+      categories
+    });
+  } catch (error) {
+    console.error("Lỗi lấy category của document:", error);
+    res.status(500).json({
+      message: "Lỗi server khi lấy category của document."
     });
   }
 };
