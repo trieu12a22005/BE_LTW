@@ -7,8 +7,8 @@ const router = express.Router()
 
 router.get("/", verifyToken, controllers.getPosts);
 router.post("/create", verifyToken, controllers.createPost);
-router.get("/Admin/getByCheck/:status", checkAdmin, controllers.getPostByCheck);
-router.patch("/Admin/update/:idPost/check", checkAdmin, controllers.updatePostCheck);
+router.get("/getByCheck/:status", checkAdmin, controllers.getPostByCheck);
+router.patch("/update/:idPost/check", checkAdmin, controllers.updatePostCheck);
 router.patch("/update/:idPost/info", verifyToken, controllers.updatePost);
 router.delete("/delete/:idPost", verifyToken, controllers.deletePost);
 router.patch("/addComment/:postId", verifyToken, controllers.addComment);

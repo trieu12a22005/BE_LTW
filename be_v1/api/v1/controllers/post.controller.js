@@ -4,38 +4,71 @@ const User = require("../models/user.model");
 const Comment = require("../models/comment.model");
 const mongoose = require("mongoose");
 const Category = require("../models/category.model");
-const { findById } = require("../models/document.model");
+const {
+  findById
+} = require("../models/document.model");
 
 // Lấy danh sách posts 
 exports.getPosts = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
-
     let query = {};
 
-    if (user.role !== "admin") {
+    if (!user || user.role !== "admin") {
       query.check = "accept";
     }
 
-    const posts = await Post.find(query);
-    res.json(posts);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 9;
+    const skip = (page - 1) * limit;
+
+    const [posts, total] = await Promise.all([
+      Post.find(query).sort({
+        createdAt: -1
+      }).skip(skip).limit(limit),
+      Post.countDocuments(query)
+    ]);
+
+    if (total === 0) {
+      return res.status(404).json({
+        message: "Không tìm thấy bài viết nào trong hệ thống.",
+        total: 0,
+        posts: []
+      });
+    }
+
+    res.status(200).json({
+      message: `Lấy danh sách bài viết thành công. Tổng số bài viết: ${total}.`,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      count: posts.length,
+      posts
+    });
   } catch (error) {
+    console.error("Lỗi khi lấy danh sách bài viết:", error);
     res.status(500).json({
-      message: "Lỗi khi lấy danh sách bài viết",
+      message: "Lỗi server khi lấy danh sách bài viết",
       error: error.message
     });
   }
 };
 
-
 // Lọc post theo trạng thái check
 exports.getPostByCheck = async (req, res) => {
   try {
-    const { status } = req.params; // "waiting", "accept", "delete"
-    const posts = await Post.find({ check: status }).populate("author");
+    const {
+      status
+    } = req.params; // "waiting", "accept", "delete"
+    const posts = await Post.find({
+      check: status
+    }).populate("author");
     res.json(posts);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi lọc bài viết", error: error.message });
+    res.status(500).json({
+      message: "Lỗi khi lọc bài viết",
+      error: error.message
+    });
   }
 };
 
@@ -43,14 +76,22 @@ exports.getPostByCheck = async (req, res) => {
 exports.createPost = async (req, res) => {
   try {
     const userId = req.user.userId;
-    let { title, content, category } = req.body;
+    let {
+      title,
+      content,
+      category
+    } = req.body;
 
     if (!Array.isArray(category) || category.length === 0) {
-      return res.status(400).json({ message: "Danh mục không hợp lệ" });
+      return res.status(400).json({
+        message: "Danh mục không hợp lệ"
+      });
     }
 
     // Đảm bảo category có dạng [{ categoryId: "id1" }, { categoryId: "id2" }]
-    const formattedCategory = category.map(id => ({ categoryId: id }));
+    const formattedCategory = category.map(id => ({
+      categoryId: id
+    }));
 
     const newPost = new Post({
       title,
@@ -60,10 +101,16 @@ exports.createPost = async (req, res) => {
     });
 
     await newPost.save();
-    res.status(201).json({ message: "Tạo bài viết thành công", post: newPost });
+    res.status(201).json({
+      message: "Tạo bài viết thành công",
+      post: newPost
+    });
   } catch (error) {
     console.error("Lỗi khi tạo bài viết:", error);
-    res.status(500).json({ message: "Lỗi khi tạo bài viết", error: error.message });
+    res.status(500).json({
+      message: "Lỗi khi tạo bài viết",
+      error: error.message
+    });
   }
 };
 
@@ -71,24 +118,38 @@ exports.createPost = async (req, res) => {
 // Sửa bài viết (title, content, category) -- chính chủ
 exports.updatePost = async (req, res) => {
   try {
-    const { idPost } = req.params;
-    const { title, content, category } = req.body;
+    const {
+      idPost
+    } = req.params;
+    const {
+      title,
+      content,
+      category
+    } = req.body;
     const userId = req.user.userId;
 
     const post = await Post.findById(idPost);
     if (!post) {
-      return res.status(404).json({ message: "Không tìm thấy bài viết" });
+      return res.status(404).json({
+        message: "Không tìm thấy bài viết"
+      });
     }
 
     if (post.author !== userId) {
-      return res.status(403).json({ message: "Bạn không có quyền sửa bài viết này" });
+      return res.status(403).json({
+        message: "Bạn không có quyền sửa bài viết này"
+      });
     }
 
     if (!Array.isArray(category) || category.length === 0) {
-      return res.status(400).json({ message: "Danh mục không hợp lệ" });
+      return res.status(400).json({
+        message: "Danh mục không hợp lệ"
+      });
     }
 
-    const formattedCategory = category.map(id => ({ categoryId: id }));
+    const formattedCategory = category.map(id => ({
+      categoryId: id
+    }));
 
     post.title = title;
     post.content = content;
@@ -96,9 +157,15 @@ exports.updatePost = async (req, res) => {
 
     await post.save();
 
-    res.json({ message: "Cập nhật bài viết thành công", post });
+    res.json({
+      message: "Cập nhật bài viết thành công",
+      post
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi cập nhật bài viết", error: error.message });
+    res.status(500).json({
+      message: "Lỗi khi cập nhật bài viết",
+      error: error.message
+    });
   }
 };
 
@@ -106,23 +173,37 @@ exports.updatePost = async (req, res) => {
 //thay đổi chế độ check (chỉ admin)
 exports.updatePostCheck = async (req, res) => {
   try {
-    const { idPost } = req.params;
-    const { check } = req.body;
+    const {
+      idPost
+    } = req.params;
+    const {
+      check
+    } = req.body;
 
     const validChecks = ["waiting", "accept", "delete"];
     if (!validChecks.includes(check)) {
-      return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+      return res.status(400).json({
+        message: "Trạng thái không hợp lệ"
+      });
     }
 
     const post = await Post.findById(idPost);
-    if (!post) return res.status(404).json({ message: "Không tìm thấy bài viết" });
+    if (!post) return res.status(404).json({
+      message: "Không tìm thấy bài viết"
+    });
 
     post.check = check;
     await post.save();
 
-    res.json({ message: "Cập nhật trạng thái thành công", post });
+    res.json({
+      message: "Cập nhật trạng thái thành công",
+      post
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi cập nhật trạng thái", error: error.message });
+    res.status(500).json({
+      message: "Lỗi khi cập nhật trạng thái",
+      error: error.message
+    });
   }
 };
 
@@ -130,15 +211,21 @@ exports.updatePostCheck = async (req, res) => {
 // Xoá bài viết (admin hoặc chính chủ)
 exports.deletePost = async (req, res) => {
   try {
-    const { idPost } = req.params;
+    const {
+      idPost
+    } = req.params;
     const userId = req.user.userId;
     const userRole = req.user.role;
 
     const post = await Post.findById(idPost);
-    if (!post) return res.status(404).json({ message: "Không tìm thấy bài viết" });
+    if (!post) return res.status(404).json({
+      message: "Không tìm thấy bài viết"
+    });
 
     if (post.author !== userId && userRole !== "admin") {
-      return res.status(403).json({ message: "Bạn không có quyền xoá bài viết này" });
+      return res.status(403).json({
+        message: "Bạn không có quyền xoá bài viết này"
+      });
     }
 
     post.check = "delete";
@@ -149,9 +236,15 @@ exports.deletePost = async (req, res) => {
       toDocOrPost: idPost
     });
 
-    res.json({ message: "Bài viết đã bị đánh dấu xoá", post });
+    res.json({
+      message: "Bài viết đã bị đánh dấu xoá",
+      post
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi xoá bài viết", error: error.message });
+    res.status(500).json({
+      message: "Lỗi khi xoá bài viết",
+      error: error.message
+    });
   }
 };
 
@@ -225,7 +318,7 @@ exports.getPostById = async (req, res) => {
     const {
       idPost
     } = req.params;
-    const user = await User.findById( req.user.userId)
+    const user = await User.findById(req.user.userId)
 
     const post = await Post.findById(idPost);
     if (!post) {
