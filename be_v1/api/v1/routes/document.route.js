@@ -20,4 +20,6 @@ router.get("/download/:id", verifyToken, controllers.downloadDoc);
 
 router.post("/rate/:idDocument", verifyToken, controllers.rateDocument);
 
+router.get("/reports/:idDocument", verifyToken, controllers.getReportsForDocument);
+
 module.exports = router;

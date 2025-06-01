@@ -3,6 +3,7 @@ const express = require("express");
 const User = require("../models/user.model");
 const Category = require("../models/category.model");
 const Comment = require("../models/comment.model");
+const Report = require("../models/report.model");
 const path = require("path");
 const mongoose = require("mongoose");
 const multer = require("multer");
@@ -670,6 +671,35 @@ exports.rateDocument = async (req, res) => {
     res.status(500).json({
       message: "Lỗi server",
       error: error.message
+    });
+  }
+};
+
+exports.getReportsForDocument = async (req, res) => {
+  try {
+    const {
+      idDocument
+    } = req.params;
+    const user = await User.findById(req.user.userId);
+    if (user.role !== "admin") {
+      return res.status(403).json({
+        message: "Bạn không có quyền."
+      });
+    }
+
+    const reports = await Report.find({
+      idDocument
+    }).sort({
+      createdAt: -1
+    });
+    res.status(200).json({
+      total: reports.length,
+      reports
+    });
+  } catch (error) {
+    console.error("Lỗi lấy báo cáo:", error);
+    res.status(500).json({
+      message: "Lỗi server khi lấy báo cáo cho document."
     });
   }
 };
