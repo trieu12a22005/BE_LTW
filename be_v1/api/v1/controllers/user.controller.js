@@ -14,7 +14,9 @@ module.exports.register = async (req, res) => {
       birthday,
       phone,
       role,
-      address
+      address,
+      university,
+      major
     } =
     req.body;
 
@@ -44,7 +46,9 @@ module.exports.register = async (req, res) => {
       password: hashedPassword, // ✅ Lưu mật khẩu đã mã hóa
       birthday,
       phone,
-      address
+      address,
+      university,
+      major
     });
 
     await user.save();
@@ -111,8 +115,8 @@ module.exports.login = async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-     secure: process.env.NODE_ENV === "production", 
-  sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -369,6 +373,8 @@ module.exports.detailUser = async (req, res) => {
       birthday: user.birthday,
       role: user.role,
       phone: user.phone,
+      university: user.university,
+      major: user.major,
       //password: user.password,
       username: user.username,
       createdAt: user.createdAt,
@@ -387,7 +393,7 @@ module.exports.upDateInfo = async (req, res) => {
     const userId = req.user.userId;
     const updateData = req.body;
     // Không cho phép chỉnh sửa email hoặc role
-    if (updateData.email !== undefined || updateData.role !== undefined || updateData.username!== undefined) {
+    if (updateData.email !== undefined || updateData.role !== undefined || updateData.username !== undefined) {
       return res.status(403).json({
         warning: "Không được chỉnh sửa Email hoặc Role hoặc username"
       });
@@ -400,7 +406,7 @@ module.exports.upDateInfo = async (req, res) => {
       });
     }
     // Cập nhật các trường được phép
-    const allowedFields = ["fullName", "phone", "birthday", "address"];
+    const allowedFields = ["fullName", "phone", "birthday", "address", "university", "major"];
     allowedFields.forEach(field => {
       if (updateData[field] !== undefined) {
         user[field] = updateData[field];
@@ -416,7 +422,9 @@ module.exports.upDateInfo = async (req, res) => {
         username: user.username,
         phone: user.phone,
         birthday: user.birthday,
-        address: user.address
+        address: user.address,
+        university: user.university,
+        major: user.major
       }
     });
   } catch (error) {
@@ -465,6 +473,8 @@ module.exports.getUserById = async (req, res) => {
       role: userFind.role,
       phone: userFind.phone,
       username: userFind.username,
+      university: userFind.university,
+      major: userFind.major
     });
   } catch (error) {
     res.status(500).json({

@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema(
         role: { type: String, enum: ["student", "admin"], default: "student"},
         fullName: { type: String, required: true },
         address: {type: String, required: false},
+        university: {type: String, required: false},
+        major: {type: String, required: false},
         deleted: {
          type: Boolean,
          default: false 
