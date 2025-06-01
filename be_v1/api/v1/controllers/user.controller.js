@@ -387,9 +387,9 @@ module.exports.upDateInfo = async (req, res) => {
     const userId = req.user.userId;
     const updateData = req.body;
     // Không cho phép chỉnh sửa email hoặc role
-    if (updateData.email !== undefined || updateData.role !== undefined) {
+    if (updateData.email !== undefined || updateData.role !== undefined || updateData.username!== undefined) {
       return res.status(403).json({
-        warning: "Không được chỉnh sửa Email hoặc Role"
+        warning: "Không được chỉnh sửa Email hoặc Role hoặc username"
       });
     }
     // Tìm user hiện tại
@@ -400,7 +400,7 @@ module.exports.upDateInfo = async (req, res) => {
       });
     }
     // Cập nhật các trường được phép
-    const allowedFields = ["fullName", "phone", "birthday", "address", "username"];
+    const allowedFields = ["fullName", "phone", "birthday", "address"];
     allowedFields.forEach(field => {
       if (updateData[field] !== undefined) {
         user[field] = updateData[field];
