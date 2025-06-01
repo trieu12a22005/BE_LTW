@@ -9,7 +9,8 @@ const { findById } = require("../models/document.model");
 // Lấy danh sách posts 
 exports.getPosts = async (req, res) => {
   try {
-    const user = req.user;
+    const user = await User.findById(req.user.userId);
+
     let query = {};
 
     if (user.role !== "admin") {
