@@ -7,23 +7,25 @@ const Category = require("../models/category.model");
 const { findById } = require("../models/document.model");
 
 // Lấy danh sách posts 
-exports.getPost = async (req, res) => {
+exports.getPosts = async (req, res) => {
   try {
-    const posts = await Post.find({check: "accept"});
+    const user = req.user;
+    let query = {};
+
+    if (user.role !== "admin") {
+      query.check = "accept";
+    }
+
+    const posts = await Post.find(query);
     res.json(posts);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi lấy danh sách bài viết", error: error.message });
+    res.status(500).json({
+      message: "Lỗi khi lấy danh sách bài viết",
+      error: error.message
+    });
   }
 };
 
-exports.getPostAdmin = async (req, res) => {
-  try {
-    const posts = await Post.find();
-    res.json(posts);
-  } catch (error) {
-    res.status(500).json({ message: "Lỗi khi lấy danh sách bài viết", error: error.message });
-  }
-};
 
 // Lọc post theo trạng thái check
 exports.getPostByCheck = async (req, res) => {
