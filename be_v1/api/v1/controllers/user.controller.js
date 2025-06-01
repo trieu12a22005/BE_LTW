@@ -369,8 +369,10 @@ module.exports.detailUser = async (req, res) => {
       birthday: user.birthday,
       role: user.role,
       phone: user.phone,
-      password: user.password,
+      //password: user.password,
       username: user.username,
+      createdAt: user.createdAt,
+      lastActive: user.lastActive
     });
   } catch (error) {
     res.status(500).json({
