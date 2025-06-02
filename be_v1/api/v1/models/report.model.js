@@ -24,6 +24,11 @@ const reportSchema = new mongoose.Schema({
         required: true,
         ref: "User"
     }, // Ai gửi report
+    status: {
+        type: String,
+        enum: ["pending", "in_progress", "resolved"],
+        default: "pending"
+    }      
 },{
     timestamps: true
 }

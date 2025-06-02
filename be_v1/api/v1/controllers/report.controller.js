@@ -22,7 +22,7 @@ exports.reportDocument = async (req, res) => {
 
         if (!["doc", "post"].includes(type)) {
             return res.status(400).json({
-                message: "Loại báo cáo không hợp lệ."
+                message: `Loại báo cáo '${type}' không hợp lệ. Chỉ cho phép 'doc' hoặc 'post'.`
             });
         }
 
@@ -62,7 +62,7 @@ exports.getReports = async (req, res) => {
 
         if (!["doc", "post"].includes(type)) {
             return res.status(400).json({
-                message: "Loại báo cáo không hợp lệ."
+                message: `Loại báo cáo '${type}' không hợp lệ. Chỉ cho phép 'doc' hoặc 'post'.`
             });
         }
 
@@ -94,7 +94,7 @@ exports.getReportById = async (req, res) => {
 
         if (!["doc", "post"].includes(type)) {
             return res.status(400).json({
-                message: "Loại báo cáo không hợp lệ."
+                message: `Loại báo cáo '${type}' không hợp lệ. Chỉ cho phép 'doc' hoặc 'post'.`
             });
         }
 
@@ -141,7 +141,7 @@ exports.deleteReport = async (req, res) => {
 
         if (!["doc", "post"].includes(type)) {
             return res.status(400).json({
-                message: "Loại báo cáo không hợp lệ."
+                message: `Loại báo cáo '${type}' không hợp lệ. Chỉ cho phép 'doc' hoặc 'post'.`
             });
         }
 
@@ -151,7 +151,7 @@ exports.deleteReport = async (req, res) => {
         });
         if (!deleted) {
             return res.status(404).json({
-                message: "Không tìm thấy báo cáo."
+                message: `Không tìm thấy báo cáo với id '${id}' và type '${type}'.`
             });
         }
 
@@ -200,31 +200,80 @@ exports.searchReportsByReason = async (req, res) => {
 
         if (!["doc", "post"].includes(type)) {
             return res.status(400).json({
-                message: "Loại báo cáo không hợp lệ."
+                message: `Loại báo cáo '${type}' không hợp lệ. Chỉ cho phép 'doc' hoặc 'post'.`
             });
         }
 
-        // Lấy toàn bộ reports
-        const allReports = await Report.find({
-                type
-            }).sort({
+        const regex = new RegExp(normalizeText(reason), 'i');
+        const reports = await Report.find({
+            type,
+            reason: {
+                $regex: regex
+            }
+        }).sort({
             createdAt: -1
         });
 
-        // Lọc dữ liệu theo normalized reason
-        const normalizedQuery = normalizeText(reason);
-        const filteredReports = allReports.filter(report =>
-            normalizeText(report.reason).includes(normalizedQuery)
-        );
-
         res.status(200).json({
-            total: filteredReports.length,
-            reports: filteredReports
+            total: reports.length,
+            reports
         });
     } catch (error) {
         console.error("Lỗi tìm kiếm báo cáo:", error);
         res.status(500).json({
             message: "Lỗi server khi tìm kiếm báo cáo."
+        });
+    }
+};
+
+exports.updateReportStatus = async (req, res) => {
+    try {
+        const {
+            id,
+            type
+        } = req.params;
+        const {
+            status
+        } = req.body;
+
+        const validStatuses = ["pending", "in_progress", "resolved"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                message: `Trạng thái '${status}' không hợp lệ. Chỉ cho phép: ${validStatuses.join(", ")}`
+            });
+        }
+
+        const user = await User.findById(req.user.userId);
+        if (user.role !== "admin") {
+            return res.status(403).json({
+                message: "Không có quyền cập nhật báo cáo."
+            });
+        }
+
+        const report = await Report.findOneAndUpdate({
+            _id: id,
+            type
+        }, {
+            status
+        }, {
+            new: true
+        });
+
+        if (!report) {
+            return res.status(404).json({
+                message: `Không tìm thấy báo cáo với id '${id}' và type '${type}'.`
+            });
+        }
+
+        res.status(200).json({
+            message: "Cập nhật trạng thái báo cáo thành công.",
+            report
+        });
+    } catch (error) {
+        console.error("Lỗi khi cập nhật trạng thái báo cáo:", error);
+        res.status(500).json({
+            message: "Lỗi server khi cập nhật trạng thái báo cáo.",
+            error: error.message
         });
     }
 };

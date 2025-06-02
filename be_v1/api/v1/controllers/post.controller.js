@@ -37,6 +37,15 @@ exports.getPosts = async (req, res) => {
       });
     }
 
+    // Tăng views cho các post trong trang này (nếu user không phải admin hoặc chính chủ)
+    const updateViewsPromises = posts.map(async (post) => {
+      if (user.role !== "admin" && user.userId !== post.author) {
+        post.views += 1;
+        return post.save();
+      }
+    });
+    await Promise.all(updateViewsPromises);
+
     res.status(200).json({
       message: `Lấy danh sách bài viết thành công. Tổng số bài viết: ${total}.`,
       total,
@@ -327,6 +336,12 @@ exports.getPostById = async (req, res) => {
       });
     }
 
+    // Nếu không phải admin hoặc chính chủ → tăng views
+    if (user.role !== "admin" && user.userId !== post.author) {
+      post.views += 1;
+      await post.save();
+    }
+
     // Nếu không phải admin và bài đã bị xoá → ẩn nội dung
     if (post.check === "delete" && user.role !== "admin") {
       return res.status(200).json({
@@ -403,6 +418,160 @@ exports.toggleLikePost = async (req, res) => {
     console.error("Lỗi toggle like:", error);
     res.status(500).json({
       message: "Lỗi server khi toggle like",
+      error: error.message
+    });
+  }
+};
+
+exports.getAllCategoriesForPost = async (req, res) => {
+  try {
+    const {
+      idPost
+    } = req.params;
+
+    const post = await Post.findById(idPost);
+    if (!post) {
+      return res.status(404).json({
+        message: "Không tìm thấy bài viết."
+      });
+    }
+
+    const categoryIds = post.category.map(cat => cat.categoryId);
+
+    const categories = await Category.find({
+      _id: {
+        $in: categoryIds
+      }
+    }).sort({
+      name: 1
+    });
+
+    res.status(200).json({
+      total: categories.length,
+      categories
+    });
+  } catch (error) {
+    console.error("Lỗi lấy category của bài viết:", error);
+    res.status(500).json({
+      message: "Lỗi server khi lấy category của bài viết.",
+      error: error.message
+    });
+  }
+};
+
+exports.getByCategory = async (req, res) => {
+  try {
+    const {
+      category
+    } = req.body;
+
+    if (!category || (Array.isArray(category) && category.length === 0)) {
+      return res.status(400).json({
+        message: "Vui lòng cung cấp category hoặc danh sách category."
+      });
+    }
+
+    const categoryIds = Array.isArray(category) ? category : [category];
+    const categoryIdArray = categoryIds.map(id => new mongoose.Types.ObjectId(id.trim()));
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 9;
+    const skip = (page - 1) * limit;
+
+    const query = {
+      category: {
+        $all: categoryIdArray.map(id => ({
+          $elemMatch: {
+            categoryId: id
+          }
+        }))
+      }
+    };
+
+    const user = await User.findById(req.user.userId);
+    if (!user || user.role !== "admin") {
+      query.check = "accept";
+    }
+
+    const [posts, total] = await Promise.all([
+      Post.find(query).sort({
+        createdAt: -1
+      }).skip(skip).limit(limit),
+      Post.countDocuments(query)
+    ]);
+
+    if (total === 0) {
+      return res.status(404).json({
+        message: "Không tìm thấy bài viết chứa tất cả danh mục đã cung cấp."
+      });
+    }
+
+    res.status(200).json({
+      message: "Lấy bài viết theo danh mục thành công",
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      count: posts.length,
+      posts
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi tìm bài viết theo category:", error);
+    res.status(500).json({
+      message: "Lỗi server khi tìm bài viết theo danh mục",
+      error: error.message
+    });
+  }
+};
+
+// Hàm xóa dấu và chuyển về lower-case
+function normalizeText(text) {
+  return text.normalize('NFD') // tách dấu
+    .replace(/[\u0300-\u036f]/g, '') // xóa dấu
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D') // thay đ và Đ
+    .toLowerCase(); // về chữ thường
+}
+
+// Tìm kiếm post theo title
+exports.searchPostsByTitle = async (req, res) => {
+  try {
+    const {
+      title
+    } = req.query;
+    if (!title) {
+      return res.status(400).json({
+        message: "Vui lòng cung cấp từ khóa tìm kiếm (title)."
+      });
+    }
+
+    const user = await User.findById(req.user.userId);
+
+    // Tạo regex từ normalizeText(title)
+    const regex = new RegExp(normalizeText(title), 'i');
+
+    const query = {
+      title: {
+        $regex: regex
+      }
+    };
+
+    // User thường chỉ xem bài viết đã duyệt
+    if (!user || user.role !== "admin") {
+      query.check = "accept";
+    }
+
+    const posts = await Post.find(query).sort({
+      createdAt: -1
+    });
+
+    res.status(200).json({
+      total: posts.length,
+      posts
+    });
+  } catch (error) {
+    console.error("Lỗi tìm kiếm bài viết theo title:", error);
+    res.status(500).json({
+      message: "Lỗi server khi tìm kiếm bài viết theo title",
       error: error.message
     });
   }

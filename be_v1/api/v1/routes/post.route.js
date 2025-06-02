@@ -14,8 +14,12 @@ router.delete("/delete/:idPost", verifyToken, controllers.deletePost);
 router.patch("/addComment/:postId", verifyToken, controllers.addComment);
 
 router.get("/getById/:idPost", verifyToken, controllers.getPostById);
+router.post("/byCategory", verifyToken, controllers.getByCategory);
+router.get("/searchByTitle", verifyToken, controllers.searchPostsByTitle);
 
 router.patch("/like/:idPost", verifyToken, controllers.toggleLikePost);
+router.get("/categories/:idPost", verifyToken, controllers.getAllCategoriesForPost);
+
 //router.patch
 
 module.exports = router;
