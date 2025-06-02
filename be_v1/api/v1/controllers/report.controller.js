@@ -5,7 +5,8 @@ const User = require("../models/user.model");
 exports.reportDocument = async (req, res) => {
     try {
         const {
-            idDocument
+            idPostOrDoc,
+            type
         } = req.params;
         const {
             reason,
@@ -13,14 +14,21 @@ exports.reportDocument = async (req, res) => {
         } = req.body;
         const userId = req.user.userId;
 
-        if (!idDocument || !reason || !description) {
+        if (!idPostOrDoc || !reason || !description || !type) {
             return res.status(400).json({
-                message: "Thiếu idDocument, reason hoặc description."
+                message: "Thiếu idPostOrDoc, type, reason hoặc description."
+            });
+        }
+
+        if (!["doc", "post"].includes(type)) {
+            return res.status(400).json({
+                message: "Loại báo cáo không hợp lệ."
             });
         }
 
         const report = new Report({
-            idDocument,
+            idPostOrDoc,
+            type,
             reason,
             description,
             reportedBy: userId
@@ -42,6 +50,9 @@ exports.reportDocument = async (req, res) => {
 // Admin lấy danh sách báo cáo
 exports.getReports = async (req, res) => {
     try {
+        const {
+            type
+        } = req.params;
         const user = await User.findById(req.user.userId);
         if (user.role !== "admin") {
             return res.status(403).json({
@@ -49,7 +60,15 @@ exports.getReports = async (req, res) => {
             });
         }
 
-        const reports = await Report.find().sort({
+        if (!["doc", "post"].includes(type)) {
+            return res.status(400).json({
+                message: "Loại báo cáo không hợp lệ."
+            });
+        }
+
+        const reports = await Report.find({
+            type
+        }).sort({
             createdAt: -1
         });
         res.status(200).json({
@@ -68,11 +87,21 @@ exports.getReports = async (req, res) => {
 exports.getReportById = async (req, res) => {
     try {
         const {
-            id
+            id,
+            type
         } = req.params;
         const user = await User.findById(req.user.userId);
 
-        const report = await Report.findById(id);
+        if (!["doc", "post"].includes(type)) {
+            return res.status(400).json({
+                message: "Loại báo cáo không hợp lệ."
+            });
+        }
+
+        const report = await Report.findOne({
+            _id: id,
+            type
+        });
         if (!report) {
             return res.status(404).json({
                 message: "Không tìm thấy báo cáo."
@@ -100,7 +129,8 @@ exports.getReportById = async (req, res) => {
 exports.deleteReport = async (req, res) => {
     try {
         const {
-            id
+            id,
+            type
         } = req.params;
         const user = await User.findById(req.user.userId);
         if (user.role !== "admin") {
@@ -109,7 +139,16 @@ exports.deleteReport = async (req, res) => {
             });
         }
 
-        const deleted = await Report.findByIdAndDelete(id);
+        if (!["doc", "post"].includes(type)) {
+            return res.status(400).json({
+                message: "Loại báo cáo không hợp lệ."
+            });
+        }
+
+        const deleted = await Report.findOneAndDelete({
+            _id: id,
+            type
+        });
         if (!deleted) {
             return res.status(404).json({
                 message: "Không tìm thấy báo cáo."
@@ -141,6 +180,10 @@ exports.searchReportsByReason = async (req, res) => {
         const {
             reason
         } = req.query;
+        const {
+            type
+        } = req.params;
+
         const user = await User.findById(req.user.userId);
 
         if (user.role !== "admin") {
@@ -155,8 +198,16 @@ exports.searchReportsByReason = async (req, res) => {
             });
         }
 
+        if (!["doc", "post"].includes(type)) {
+            return res.status(400).json({
+                message: "Loại báo cáo không hợp lệ."
+            });
+        }
+
         // Lấy toàn bộ reports
-        const allReports = await Report.find().sort({
+        const allReports = await Report.find({
+                type
+            }).sort({
             createdAt: -1
         });
 

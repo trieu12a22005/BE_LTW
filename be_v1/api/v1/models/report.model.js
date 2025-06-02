@@ -1,9 +1,15 @@
 const mongoose = require("mongoose");
 
 const reportSchema = new mongoose.Schema({
-    idDocument: {
+    idPostOrDoc: {
         type: String,
         required: true
+    },
+    type: {
+        type: String, 
+        enum: ["doc", "post"],
+        default: "doc",
+        require: true
     },
     reason:{
         type: String,
