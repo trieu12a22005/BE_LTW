@@ -372,6 +372,13 @@ exports.getDocByIdUser = async (req, res) => {
   }
 }
 
+function normalizeText(text) {
+  return text.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .toLowerCase();
+}
+
 exports.findDoc = async (req, res) => {
   try {
     const {
@@ -387,44 +394,68 @@ exports.findDoc = async (req, res) => {
       });
     }
 
-    const regex = new RegExp(query, 'i'); // Regex tìm kiếm không phân biệt hoa thường
+    // const regex = new RegExp(query, 'i'); // Regex tìm kiếm không phân biệt hoa thường
 
-    // Xây dựng filter
-    const orConditions = [{
-        title: {
-          $regex: regex
-        }
-      },
-      {
-        description: {
-          $regex: regex
-        }
-      }
-    ];
+    // // Xây dựng filter
+    // const orConditions = [{
+    //     title: {
+    //       $regex: regex
+    //     }
+    //   },
+    //   {
+    //     description: {
+    //       $regex: regex
+    //     }
+    //   }
+    // ];
 
-    // Nếu query là ObjectId hợp lệ, thêm điều kiện categoryId
-    if (mongoose.Types.ObjectId.isValid(query)) {
-      orConditions.push({
-        "category.categoryId": mongoose.Types.ObjectId(query)
-      });
-    }
+    // // Nếu query là ObjectId hợp lệ, thêm điều kiện categoryId
+    // if (mongoose.Types.ObjectId.isValid(query)) {
+    //   orConditions.push({
+    //     "category.categoryId": mongoose.Types.ObjectId(query)
+    //   });
+    // }
 
-    const filter = {
-      $or: orConditions
-    };
+    // const filter = {
+    //   $or: orConditions
+    // };
 
-    // Truy vấn dữ liệu
-    const [documents, total] = await Promise.all([
-      Document.find(filter).skip(skip).limit(limit),
-      Document.countDocuments(filter)
-    ]);
+    // // Truy vấn dữ liệu
+    // const [documents, total] = await Promise.all([
+    //   Document.find(filter).skip(skip).limit(limit),
+    //   Document.countDocuments(filter)
+    // ]);
+
+    // res.status(200).json({
+    //   total, // Tổng số tài liệu
+    //   page, // Trang hiện tại
+    //   pages: Math.ceil(total / limit), // Tổng số trang
+    //   count: documents.length, // Số tài liệu trong trang hiện tại
+    //   documents // Danh sách tài liệu
+    // });
+
+    const normalizedQuery = normalizeText(query);
+
+    // Lấy toàn bộ documents có thể tìm kiếm (nếu cần, có thể thêm filter check)
+    let documents = await Document.find();
+
+    // Lọc thủ công các document có title hoặc description đã normalize chứa normalizedQuery
+    const filteredDocs = documents.filter(doc => {
+      const titleNorm = normalizeText(doc.title || "");
+      const descNorm = normalizeText(doc.description || "");
+      return titleNorm.includes(normalizedQuery) || descNorm.includes(normalizedQuery);
+    });
+
+    // Phân trang thủ công
+    const startIndex = (page - 1) * limit;
+    const pagedDocs = filteredDocs.slice(startIndex, startIndex + limit);
 
     res.status(200).json({
-      total, // Tổng số tài liệu
-      page, // Trang hiện tại
-      pages: Math.ceil(total / limit), // Tổng số trang
-      count: documents.length, // Số tài liệu trong trang hiện tại
-      documents // Danh sách tài liệu
+      total: filteredDocs.length,
+      page,
+      pages: Math.ceil(filteredDocs.length / limit),
+      count: pagedDocs.length,
+      documents: pagedDocs
     });
 
   } catch (error) {
