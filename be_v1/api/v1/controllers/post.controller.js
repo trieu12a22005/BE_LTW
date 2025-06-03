@@ -606,11 +606,12 @@ function normalizeText(text) {
     .toLowerCase(); // về chữ thường
 }
 
-// Tìm kiếm post theo title
 exports.searchPostsByTitle = async (req, res) => {
   try {
     const {
-      title
+      title,
+      page = 1,
+      limit = 9
     } = req.query;
     if (!title) {
       return res.status(400).json({
@@ -620,27 +621,34 @@ exports.searchPostsByTitle = async (req, res) => {
 
     const user = await User.findById(req.user.userId);
 
-    // Tạo regex từ normalizeText(title)
     const regex = new RegExp(normalizeText(title), 'i');
 
-    const query = {
-      title: {
-        $regex: regex
-      }
-    };
-
-    // User thường chỉ xem bài viết đã duyệt
-    if (!user || user.role !== "admin") {
-      query.check = "accept";
-    }
-
-    const posts = await Post.find(query).sort({
-      createdAt: -1
+    // Lấy tất cả bài viết (đã duyệt nếu không phải admin)
+    const allPosts = await Post.find(user && user.role === 'admin' ? {} : {
+      check: "accept"
     });
 
+    // Lọc thủ công theo normalized title
+    const filteredPosts = allPosts.filter(post => {
+      if (!post.title) return false;
+      const normalizedTitle = normalizeText(post.title);
+      return regex.test(normalizedTitle);
+    });
+
+    // Phân trang thủ công
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 9;
+    const startIndex = (pageNum - 1) * limitNum;
+    const endIndex = startIndex + limitNum;
+
+    const pagedPosts = filteredPosts.slice(startIndex, endIndex);
+
     res.status(200).json({
-      total: posts.length,
-      posts
+      total: filteredPosts.length,
+      page: pageNum,
+      pages: Math.ceil(filteredPosts.length / limitNum),
+      count: pagedPosts.length,
+      posts: pagedPosts
     });
   } catch (error) {
     console.error("Lỗi tìm kiếm bài viết theo title:", error);
