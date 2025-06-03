@@ -4,6 +4,26 @@ const jwt = require("jsonwebtoken");
 const generateHelper = require("../../../helpers/generate");
 const ForgotPassword = require("../models/forgot-pasword.model");
 const sendMailHelper = require("../../../helpers/sendMail");
+const multer = require("multer");
+const {
+  createClient
+} = require("@supabase/supabase-js");
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const BUCKET_NAME = process.env.BUCKET_NAME || "avatars";
+
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage
+});
+
+exports.uploadAvatarMiddleware = upload.single("avatar"); // file field tên "avatar"
+
+// Giới hạn mime type cho ảnh avatar
+const allowedAvatarTypes = [
+  "image/jpeg", "image/png", "image/gif", "image/webp"
+];
+
 module.exports.register = async (req, res) => {
   try {
     const {
@@ -483,3 +503,68 @@ module.exports.getUserById = async (req, res) => {
     });
   }
 }
+
+exports.uploadAvatar = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Vui lòng chọn file ảnh để upload!"
+      });
+    }
+
+    if (!allowedAvatarTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        message: "Chỉ cho phép upload file ảnh JPG, PNG, GIF, WEBP."
+      });
+    }
+
+    const fileExt = req.file.originalname.split('.').pop();
+    const fileName = `avatars/${userId}-${Date.now()}.${fileExt}`;
+
+    const {
+      error
+    } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: true
+      });
+
+    if (error) {
+      return res.status(500).json({
+        message: "Lỗi upload file lên Supabase",
+        error: error.message
+      });
+    }
+
+    const {
+      data: publicUrlData
+    } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+    const avatarUrl = publicUrlData.publicUrl;
+
+    // Cập nhật URL avatar cho user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "Người dùng không tồn tại"
+      });
+    }
+
+    user.avatar = avatarUrl;
+    await user.save();
+
+    res.status(200).json({
+      message: "Cập nhật avatar thành công",
+      avatarUrl
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi upload avatar:", error);
+    res.status(500).json({
+      message: "Lỗi server khi upload avatar",
+      error: error.message
+    });
+  }
+};

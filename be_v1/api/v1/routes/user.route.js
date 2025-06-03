@@ -20,6 +20,9 @@ router.post("/logout",verifyToken,controllers.logout)
 router.patch("/password/change", verifyToken, controllers.changePassword)
 router.patch("/update",verifyToken, controllers.upDateInfo);
 router.get("/getUser/:idUser", verifyToken, controllers.getUserById);
+router.patch("/avatar", verifyToken, controllers.uploadAvatarMiddleware, controllers.uploadAvatar);
+
+module.exports = router;
 
 module.exports = router;
 
