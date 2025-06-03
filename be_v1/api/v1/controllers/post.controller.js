@@ -8,6 +8,25 @@ const {
   findById
 } = require("../models/document.model");
 
+const multer = require("multer");
+const {
+  createClient
+} = require("@supabase/supabase-js");
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const BUCKET_NAME = process.env.BUCKET_NAME;
+
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage
+});
+
+exports.uploadMiddleware = upload.array("mediaFiles", 10); // max 10 files
+
+const allowedMIMETypes = [
+  "image/jpeg", "image/png", "image/gif", "image/webp",
+  "video/mp4", "video/mpeg", "video/quicktime"
+];
+
 // Lấy danh sách posts 
 exports.getPosts = async (req, res) => {
   try {
@@ -91,22 +110,77 @@ exports.createPost = async (req, res) => {
       category
     } = req.body;
 
+    // Nếu category là chuỗi JSON, parse nó thành mảng
+    if (typeof category === "string") {
+      try {
+        category = JSON.parse(category);
+      } catch (err) {
+        return res.status(400).json({
+          message: "Danh mục không hợp lệ (không parse được JSON)"
+        });
+      }
+    }
+
     if (!Array.isArray(category) || category.length === 0) {
       return res.status(400).json({
         message: "Danh mục không hợp lệ"
       });
     }
 
-    // Đảm bảo category có dạng [{ categoryId: "id1" }, { categoryId: "id2" }]
     const formattedCategory = category.map(id => ({
       categoryId: id
     }));
+
+    // Xử lý upload file media (nếu có)
+    let media = [];
+    if (req.files && req.files.length > 0) {
+      // Kiểm tra mime types
+      for (const file of req.files) {
+        if (!allowedMIMETypes.includes(file.mimetype)) {
+          return res.status(400).json({
+            message: "File không hợp lệ. Chỉ hỗ trợ hình ảnh hoặc video."
+          });
+        }
+      }
+      // Upload từng file lên Supabase
+      for (const file of req.files) {
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `posts/${Date.now()}-${file.originalname}`;
+
+        const {
+          error
+        } = await supabase.storage.from(BUCKET_NAME).upload(fileName, file.buffer, {
+          contentType: file.mimetype,
+          upsert: false
+        });
+        if (error) {
+          return res.status(500).json({
+            message: "Lỗi upload file lên Supabase",
+            error: error.message
+          });
+        }
+
+        const {
+          data: publicUrlData
+        } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+        const fileUrl = publicUrlData.publicUrl;
+
+        // Xác định loại media: image hoặc video
+        let mediaType = file.mimetype.startsWith("image/") ? "image" : "video";
+
+        media.push({
+          url: fileUrl,
+          type: mediaType
+        });
+      }
+    }
 
     const newPost = new Post({
       title,
       content,
       category: formattedCategory,
-      author: userId
+      author: userId,
+      media
     });
 
     await newPost.save();

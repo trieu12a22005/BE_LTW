@@ -19,6 +19,16 @@ const PostsSchema = new mongoose.Schema({
     },
     _id: false
   }],
+  media: [{ // Mảng đính kèm (ảnh/video)
+    url: {
+      type: String
+    },
+    type: {
+      type: String, // image, video
+      enum: ["image", "video"],
+    },
+    _id: false
+  }],
   views: {
     type: Number,
     default: 0
