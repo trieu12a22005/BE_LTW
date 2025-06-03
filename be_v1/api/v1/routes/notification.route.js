@@ -1,10 +1,10 @@
-const express = require("express")
-const controllers = require("../controllers/notification.controller")
-const middlewareLogin = require("../../../validate/middlewareLogin")
-const verifyToken = require("../../../validate/verifyToken")
-const router =  express.Router()
+const express = require("express");
+const verifyToken = require("../../../validate/verifyToken");
+const controllers = require("../controllers/notification.controller");
+const router = express.Router();
 
-router.get("", controllers.getNotifications);
 router.post("/create", verifyToken, controllers.createNotification);
+router.get("/", verifyToken, controllers.getNotificationsByUser);
+router.patch("/read/:id", verifyToken, controllers.markAsRead);
 
 module.exports = router;

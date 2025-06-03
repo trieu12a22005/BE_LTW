@@ -1,31 +1,62 @@
 const Notification = require("../models/notification.model");
-const jwt = require("jsonwebtoken");
 
-// Lấy danh sách notifications
-exports.getNotifications = async (req, res) => {
+exports.createNotification = async (req, res) => {
   try {
-    const notifications = await Notification.find().populate("userId");
-    res.json(notifications);
+    const {
+      userId,
+      title,
+      message
+    } = req.body;
+    const notification = new Notification({
+      userId,
+      title,
+      message
+    });
+    await notification.save();
+    res.status(201).json(notification);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi lấy danh sách notifications" });
+    res.status(500).json({
+      message: "Lỗi khi tạo thông báo",
+      error
+    });
   }
 };
 
-// Tạo notification mới
-exports.createNotification = async (req, res) => {
- try {
-    let notificationsData = req.body;
-
-    if (Array.isArray(notificationsData)) {
-      const newNotifications = await Notification.insertMany(notificationsData);
-      return res.status(201).json(newNotifications);
-    }
-
-    const newNotification = new Notification(notificationsData);
-    await newNotification.save();
-    res.status(201).json(newNotification);
+exports.getNotificationsByUser = async (req, res) => {
+  try {
+    const userId = req.user.userId; // lấy từ verifyToken
+    const notifications = await Notification.find({
+      userId
+    }).sort({
+      createdAt: -1
+    });
+    res.json(notifications);
   } catch (error) {
-    console.error("Lỗi khi tạo thông báo:", error);
-    res.status(500).json({ message: "Lỗi khi tạo thông báo", error: error.message });
+    res.status(500).json({
+      message: "Lỗi khi lấy thông báo",
+      error
+    });
+  }
+};
+
+exports.markAsRead = async (req, res) => {
+  try {
+    const {
+      id
+    } = req.params; // id thông báo
+    const notification = await Notification.findByIdAndUpdate(id, {
+      isRead: true
+    }, {
+      new: true
+    });
+    if (!notification) return res.status(404).json({
+      message: "Không tìm thấy thông báo"
+    });
+    res.json(notification);
+  } catch (error) {
+    res.status(500).json({
+      message: "Lỗi khi cập nhật trạng thái",
+      error
+    });
   }
 };
