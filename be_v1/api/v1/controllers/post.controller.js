@@ -100,6 +100,14 @@ exports.getPostByCheck = async (req, res) => {
   }
 };
 
+function sanitizeFileName(name) {
+  return name
+    .normalize('NFD') // tách dấu
+    .replace(/[\u0300-\u036f]/g, '') // loại bỏ dấu
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .replace(/[^a-zA-Z0-9.\-_]/g, '_'); // thay ký tự đặc biệt bằng _
+}
+
 // Tạo post mới
 exports.createPost = async (req, res) => {
   try {
@@ -145,7 +153,9 @@ exports.createPost = async (req, res) => {
       // Upload từng file lên Supabase
       for (const file of req.files) {
         const fileExt = file.originalname.split('.').pop();
-        const fileName = `posts/${Date.now()}-${file.originalname}`;
+        const safeOriginalName = sanitizeFileName(file.originalname);
+        const fileName = `posts/${Date.now()}-${safeOriginalName}`;
+        //const fileName = `posts/${Date.now()}-${file.originalname}`;
 
         const {
           error
