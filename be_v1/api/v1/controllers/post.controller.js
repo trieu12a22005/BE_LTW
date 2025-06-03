@@ -606,33 +606,33 @@ function normalizeText(text) {
     .toLowerCase(); // về chữ thường
 }
 
-exports.searchPostsByTitle = async (req, res) => {
+exports.searchPostsByTitleOrContent = async (req, res) => {
   try {
     const {
-      title,
+      q,
       page = 1,
       limit = 9
     } = req.query;
-    if (!title) {
+    if (!q) {
       return res.status(400).json({
-        message: "Vui lòng cung cấp từ khóa tìm kiếm (title)."
+        message: "Vui lòng cung cấp từ khóa tìm kiếm (q)."
       });
     }
 
     const user = await User.findById(req.user.userId);
 
-    const regex = new RegExp(normalizeText(title), 'i');
+    const regex = new RegExp(normalizeText(q), 'i');
 
     // Lấy tất cả bài viết (đã duyệt nếu không phải admin)
     const allPosts = await Post.find(user && user.role === 'admin' ? {} : {
       check: "accept"
     });
 
-    // Lọc thủ công theo normalized title
+    // Lọc thủ công theo normalized title hoặc content
     const filteredPosts = allPosts.filter(post => {
-      if (!post.title) return false;
-      const normalizedTitle = normalizeText(post.title);
-      return regex.test(normalizedTitle);
+      const normalizedTitle = normalizeText(post.title || "");
+      const normalizedContent = normalizeText(post.content || "");
+      return regex.test(normalizedTitle) || regex.test(normalizedContent);
     });
 
     // Phân trang thủ công
@@ -651,9 +651,9 @@ exports.searchPostsByTitle = async (req, res) => {
       posts: pagedPosts
     });
   } catch (error) {
-    console.error("Lỗi tìm kiếm bài viết theo title:", error);
+    console.error("Lỗi tìm kiếm bài viết theo title và content:", error);
     res.status(500).json({
-      message: "Lỗi server khi tìm kiếm bài viết theo title",
+      message: "Lỗi server khi tìm kiếm bài viết",
       error: error.message
     });
   }
