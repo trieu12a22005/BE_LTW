@@ -11,6 +11,8 @@ router.patch("/update/:idCategory", verifyToken, controllers.updateCategory);
 router.delete("/delete/:idCategory", verifyToken, controllers.deleteCategory);
 router.patch("/updateByAdmin/:idCategory", checkAdmin, controllers.updateCategoryByAmdin);
 router.delete("/deleteByAdmin/:idCategory", checkAdmin, controllers.deleteCategoryByAdmin);
+
+router.get("/search", verifyToken, controllers.findCategory);
 router.get("/:idCategory", verifyToken, controllers.getCategoryById);
 
 module.exports = router;
