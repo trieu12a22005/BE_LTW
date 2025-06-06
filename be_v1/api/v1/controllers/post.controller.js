@@ -71,7 +71,8 @@ exports.getPosts = async (req, res) => {
         return {
           ...post.toObject(),
           userNameAuthor: author ? author.username : "Không rõ",
-          fullNameAuthor: author ? author.fullName : "Không rõ"
+          fullNameAuthor: author ? author.fullName : "Không rõ",
+          avatarAuthor: author ? author.avatar : null,
         };
       })
     );
@@ -442,6 +443,7 @@ exports.getPostById = async (req, res) => {
     const UserAuthor = await User.findById(post.author);
     const userNameAuthor = UserAuthor ? UserAuthor.username : "Không rõ";
     const fullNameAuthor = UserAuthor ? UserAuthor.fullName : "Không rõ";
+    const avatarAuthor = UserAuthor ? UserAuthor.avatar : null;
 
     // Nếu không phải admin và bài đã bị xoá → ẩn nội dung
     if (post.check === "delete" && user.role !== "admin") {
@@ -454,6 +456,7 @@ exports.getPostById = async (req, res) => {
           author: post.author,
           userNameAuthor,
           fullNameAuthor,
+          avatarAuthor,
           check: post.check,
           createdAt: post.createdAt,
           updatedAt: post.updatedAt
