@@ -65,13 +65,26 @@ exports.getPosts = async (req, res) => {
     });
     await Promise.all(updateViewsPromises);
 
+    const postsWithAuthorNames = await Promise.all(
+      posts.map(async (post) => {
+        const author = await User.findById(post.author);
+        return {
+          ...post.toObject(),
+          userNameAuthor: author ? author.username : "Không rõ",
+          fullNameAuthor: author ? author.fullName : "Không rõ"
+        };
+      })
+    );
+
     res.status(200).json({
       message: `Lấy danh sách bài viết thành công. Tổng số bài viết: ${total}.`,
       total,
       page,
       pages: Math.ceil(total / limit),
-      count: posts.length,
-      posts
+      //count: posts.length,
+      count: postsWithAuthorNames.length,
+      //posts
+      posts: postsWithAuthorNames
     });
   } catch (error) {
     console.error("Lỗi khi lấy danh sách bài viết:", error);
@@ -426,6 +439,10 @@ exports.getPostById = async (req, res) => {
       await post.save();
     }
 
+    const UserAuthor = await User.findById(post.author);
+    const userNameAuthor = UserAuthor ? UserAuthor.username : "Không rõ";
+    const fullNameAuthor = UserAuthor ? UserAuthor.fullName : "Không rõ";
+
     // Nếu không phải admin và bài đã bị xoá → ẩn nội dung
     if (post.check === "delete" && user.role !== "admin") {
       return res.status(200).json({
@@ -435,6 +452,8 @@ exports.getPostById = async (req, res) => {
           content: "",
           category: post.category,
           author: post.author,
+          userNameAuthor,
+          fullNameAuthor,
           check: post.check,
           createdAt: post.createdAt,
           updatedAt: post.updatedAt
@@ -444,7 +463,11 @@ exports.getPostById = async (req, res) => {
 
     // Nếu là admin hoặc bài chưa bị xoá → trả về đầy đủ
     res.status(200).json({
-      post
+      post: {
+        ...post.toObject(),
+        userNameAuthor,
+        fullNameAuthor,
+      }
     });
 
   } catch (error) {
