@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: null
+    default: "https://jcrxndjvwrxpuntjwkze.supabase.co/storage/v1/object/public/uitstudyshare/avatars/67ee352847e5f5a27ad52e23-1749221165683.png"
   },
   deleted: {
     type: Boolean,
