@@ -9,6 +9,6 @@ router.get("/:toId/", verifyToken, controllers.getCommentById);
 router.post("/:toId/:type/create/:reply/", verifyToken, controllers.createComment);
 router.delete("/:toId/:type/delete/:idComment/", verifyToken, controllers.deleteComment);
 router.patch("/:toId/:type/update/:idComment/", verifyToken, controllers.updateComment);
-//router.patch
+router.get("/reply/:parentId", verifyToken, controllers.getRepliesByCommentId); //tim binh luan con
 
 module.exports = router;

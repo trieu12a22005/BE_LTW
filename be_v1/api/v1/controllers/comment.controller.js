@@ -223,3 +223,26 @@ exports.updateComment = async (req, res) => {
     });
   }
 };
+
+// Lấy danh sách bình luận con của một bình luận cụ thể
+exports.getRepliesByCommentId = async (req, res) => {
+  try {
+    const {
+      parentId
+    } = req.params;
+
+    // Tìm các bình luận có toReply bằng parentId, sắp xếp mới nhất lên đầu
+    const replies = await Comment.find({
+      toReply: parentId
+    }).sort({
+      createdAt: -1
+    });
+
+    res.json(replies);
+  } catch (error) {
+    res.status(500).json({
+      message: "Lỗi khi lấy danh sách bình luận con",
+      error: error.message
+    });
+  }
+};
