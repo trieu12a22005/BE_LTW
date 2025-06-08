@@ -11,6 +11,8 @@ exports.getCommentById = async (req, res) => {
     } = req.params;
     const comment = await Comment.find({
       toDocOrPost: toId
+    }).sort({
+      createdAt: -1
     });
     res.json(comment);
   } catch (error) {
