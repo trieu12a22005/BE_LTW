@@ -510,8 +510,9 @@ exports.getByCategory = async (req, res) => {
     ]);
 
     if (total === 0) {
-      return res.status(404).json({
-        message: "Không tìm thấy tài liệu chứa tất cả danh mục đã cung cấp."
+      return res.status(200).json({
+        message: "Không tìm thấy tài liệu chứa tất cả danh mục đã cung cấp.",
+        total,
       });
     }
 
