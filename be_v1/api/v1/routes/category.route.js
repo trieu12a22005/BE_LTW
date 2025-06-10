@@ -12,7 +12,7 @@ router.delete("/delete/:idCategory", verifyToken, controllers.deleteCategory);
 router.patch("/updateByAdmin/:idCategory", checkAdmin, controllers.updateCategoryByAmdin);
 router.delete("/deleteByAdmin/:idCategory", checkAdmin, controllers.deleteCategoryByAdmin);
 
-router.get("/search", verifyToken, controllers.findCategory);
+router.get("/search", verifyToken, controllers.findCategory); //tim theo ten hoac noi dung
 router.get("/:idCategory", verifyToken, controllers.getCategoryById);
 
 module.exports = router;

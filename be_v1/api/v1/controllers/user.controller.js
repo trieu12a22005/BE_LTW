@@ -490,6 +490,7 @@ module.exports.getUserById = async (req, res) => {
       fullName: userFind.fullName,
       email: userFind.email,
       birthday: userFind.birthday,
+      avatar: userFind.avatar,
       role: userFind.role,
       phone: userFind.phone,
       username: userFind.username,
