@@ -695,3 +695,32 @@ exports.searchPostsByTitleOrContent = async (req, res) => {
     });
   }
 };
+
+// kiểm tra 1 người đã like hay chưa:
+exports.checkLikePost = async (req, res) => {
+  try {
+    const {
+      idPost,
+      idUser
+    } = req.params;
+    // Tìm bài viết
+    const post = await Post.findById(idPost);
+    if (!post) {
+      return res.status(404).json({
+        message: "Không tìm thấy bài viết"
+      });
+    }
+    // Kiểm tra xem người dùng đã like chưa
+    const liked = post.likes.some(like => like.idUser === idUser);
+    return res.status(200).json({
+      liked,
+      message: liked ? "Người dùng đã like bài viết" : "Người dùng chưa like bài viết"
+    });
+  } catch (err) {
+    console.error("Lỗi kiểm tra like:", err);
+    res.status(500).json({
+      message: "Lỗi server khi kiểm tra like",
+      error: err.message
+    });
+  }
+}

@@ -20,6 +20,8 @@ router.get("/search", verifyToken, controllers.searchPostsByTitleOrContent);
 router.patch("/like/:idPost", verifyToken, controllers.toggleLikePost);
 router.get("/categories/:idPost", verifyToken, controllers.getAllCategoriesForPost);
 
+router.get("/like/:idPost/:idUser", verifyToken, controllers.checkLikePost);
+
 //router.patch
 
 module.exports = router;
