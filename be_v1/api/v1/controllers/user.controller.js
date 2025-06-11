@@ -426,7 +426,41 @@ module.exports.upDateInfo = async (req, res) => {
         message: "User không tồn tại"
       });
     }
-    // Cập nhật các trường được phép
+
+    // Cập nhật avatar nếu có file upload
+    if (req.file) {
+      const allowedAvatarTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      if (!allowedAvatarTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          message: "Chỉ cho phép upload file ảnh JPG, PNG, GIF, WEBP."
+        });
+      }
+
+      const fileExt = req.file.originalname.split('.').pop();
+      const fileName = `avatars/${userId}-${Date.now()}.${fileExt}`;
+      const {
+        error
+      } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: true
+        });
+
+      if (error) {
+        return res.status(500).json({
+          message: "Lỗi upload file lên Supabase",
+          error: error.message
+        });
+      }
+
+      const {
+        data: publicUrlData
+      } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+      user.avatar = publicUrlData.publicUrl;
+    }
+
+    // Cập nhật các trường khac [cac truong được phép]
     const allowedFields = ["fullName", "phone", "birthday", "address", "university", "major"];
     allowedFields.forEach(field => {
       if (updateData[field] !== undefined) {
@@ -445,7 +479,8 @@ module.exports.upDateInfo = async (req, res) => {
         birthday: user.birthday,
         address: user.address,
         university: user.university,
-        major: user.major
+        major: user.major,
+        avatar: user.avatar
       }
     });
   } catch (error) {

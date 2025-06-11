@@ -18,7 +18,7 @@ router.use(verifyToken, updateLastActive);
 router.get("/detail",verifyToken, controllers.detailUser);
 router.post("/logout",verifyToken,controllers.logout)
 router.patch("/password/change", verifyToken, controllers.changePassword)
-router.patch("/update",verifyToken, controllers.upDateInfo);
+router.patch("/update", controllers.uploadAvatarMiddleware, verifyToken, controllers.upDateInfo);
 router.get("/getUser/:idUser", verifyToken, controllers.getUserById);
 router.patch("/avatar", verifyToken, controllers.uploadAvatarMiddleware, controllers.uploadAvatar);
 
