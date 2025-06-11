@@ -389,6 +389,7 @@ module.exports.detailUser = async (req, res) => {
     return res.json({
       idUser: req.user.userId,
       fullName: user.fullName,
+      avatar: user.avatar,
       email: user.email,
       birthday: user.birthday,
       role: user.role,
