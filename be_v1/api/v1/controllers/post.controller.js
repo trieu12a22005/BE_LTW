@@ -714,7 +714,7 @@ exports.checkLikePost = async (req, res) => {
     const liked = post.likes.some(like => like.idUser === idUser);
     return res.status(200).json({
       liked,
-      message: liked ? "Người dùng đã like bài viết" : "Người dùng chưa like bài viết"
+      message: liked ? "Yes" : "No"
     });
   } catch (err) {
     console.error("Lỗi kiểm tra like:", err);
