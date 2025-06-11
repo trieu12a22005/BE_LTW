@@ -53,7 +53,8 @@ const PostsSchema = new mongoose.Schema({
     idUser: {
       type: String,
       required: true
-    }
+    },
+    _id: false
   }],
   likesCount: {
     type: Number,
