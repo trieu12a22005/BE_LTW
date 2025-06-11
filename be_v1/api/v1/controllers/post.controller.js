@@ -724,3 +724,36 @@ exports.checkLikePost = async (req, res) => {
     });
   }
 }
+
+exports.getUsersLikePost = async (req, res) => {
+  try {
+    const {
+      idPost
+    } = req.params;
+    // Tìm bài viết
+    const post = await Post.findById(idPost);
+    if (!post) {
+      return res.status(404).json({
+        message: "Không tìm thấy bài viết"
+      });
+    }
+    const userIds = post.likes.map(like => like.idUser); // Lấy thông tin người dùng (chỉ chọn avatar, username, fullName)
+    const users = await User.find({
+        _id: {
+          $in: userIds
+        }
+      })
+      .select("_id avatar username fullName");
+
+    res.status(200).json({
+      total: users.length,
+      users
+    });
+  } catch (err) {
+    console.error("Lỗi lấy danh sách người like:", err);
+    res.status(500).json({
+      message: "Lỗi server khi lấy danh sách người like",
+      error: err.message
+    });
+  }
+}
