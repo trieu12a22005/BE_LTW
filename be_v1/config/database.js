@@ -1,11 +1,19 @@
-const mongoose = require("mongoose")
+// config/database.js
+const mongoose = require("mongoose");
 
-module.exports.connect = async () => {
+const connect = async () => {
     try {
-        console.log("====MONGO_URL====", process.env.MONGO_URL); // <-- Thêm dòng này!
-        await mongoose.connect(process.env.MONGO_URL);
-        console.log("Connect Success");
-    } catch (error) {
-        console.log("Connect Error", error);
+        const uri = process.env.MONGODB_URI;
+        if (!uri) throw new Error("⚠️ MONGODB_URI chưa được khai báo");
+
+        if (mongoose.connection.readyState === 0) {
+            await mongoose.connect(uri);
+            console.log("✅ MongoDB connected");
+        }
+    } catch (err) {
+        console.error("❌ MongoDB connection error:", err);
+        throw err;
     }
-}
+};
+
+module.exports = { connect };
