@@ -470,6 +470,7 @@ exports.getPostById = async (req, res) => {
         ...post.toObject(),
         userNameAuthor,
         fullNameAuthor,
+        avatarAuthor,
       }
     });
 
