@@ -8,7 +8,6 @@ database.connect();
 const route = require("./api/v1/routes/index.route")
 const app = express();
 const port = process.env.PORT;
-const cors = require('cors');
 
 app.use(cors({
     origin: ["http://localhost:5173", "https://u-it-study-share.vercel.app"],
