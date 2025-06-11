@@ -8,10 +8,13 @@ database.connect();
 const route = require("./api/v1/routes/index.route")
 const app = express();
 const port = process.env.PORT;
+const cors = require('cors');
+
 app.use(cors({
-    origin: "http://localhost:5173",
-    credentials: true  // ✅ Cho phép gửi cookies HTTP-only giữa các domain khác nhau
+    origin: ["http://localhost:5173", "https://u-it-study-share.vercel.app"],
+    credentials: true
 }));
+
 app.use(cookiesParser());
 //parse application/json
 app.use(bodyParser.json())
