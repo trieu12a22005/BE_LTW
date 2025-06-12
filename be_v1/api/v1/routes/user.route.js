@@ -8,19 +8,19 @@ const router =  express.Router()
 
 
 router.post("/register", controllers.register);
-router.post("/login" ,middlewareLogin, controllers.login);
+router.post("/login", middlewareLogin, controllers.login);
 router.post("/password/forgot",controllers.forgotPassword);
 router.post("/password/otp",controllers.otpPassword);
 router.patch("/password/reset",controllers.resetPassword);
 
 //router.use(verifyToken, updateLastActive);
 
-router.get("/detail", verifyToken, controllers.detailUser);
+router.get("/detail", verifyToken, updateLastActive, controllers.detailUser);
 router.post("/logout", /*verifyToken,*/controllers.logout)
-router.patch("/password/change", verifyToken, controllers.changePassword)
-router.patch("/update", controllers.uploadAvatarMiddleware, verifyToken, controllers.upDateInfo);
+router.patch("/password/change", verifyToken, updateLastActive, controllers.changePassword)
+router.patch("/update", controllers.uploadAvatarMiddleware, verifyToken, updateLastActive, controllers.upDateInfo);
 router.get("/getUser/:idUser", /*verifyToken,*/ controllers.getUserById);
-router.patch("/avatar", verifyToken, controllers.uploadAvatarMiddleware, controllers.uploadAvatar);
+router.patch("/avatar", verifyToken, controllers.uploadAvatarMiddleware, updateLastActive, controllers.uploadAvatar);
 
 module.exports = router;
 
