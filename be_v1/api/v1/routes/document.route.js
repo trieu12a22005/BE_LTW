@@ -9,20 +9,18 @@ router.get("", /*verifyToken,*/ controllers.listDocs);
 //public
 router.get("/detail/:id", /*verifyToken,*/ controllers.detailDoc);
 
-//
-
 router.patch("/update/:id", verifyToken, controllers.editDoc);
 router.delete("/delete/:id", verifyToken, controllers.deleteDoc);
 
 router.get("/admin/:check", verifyToken, controllers.filterDocuments);
-router.get("/getByIdUser/:idUser", verifyToken, controllers.getDocByIdUser);
+router.get("/getByIdUser/:idUser", /*verifyToken,*/ controllers.getDocByIdUser);
 
-router.get("/find", verifyToken, controllers.findDoc);
-router.post("/byCategory", verifyToken, controllers.getByCategory);
+router.get("/find", /*verifyToken,*/ controllers.findDoc);
+router.post("/byCategory", /*verifyToken,*/ controllers.getByCategory);
 
 router.patch("/addComment/:docId", verifyToken, controllers.addComment);
 
-router.get("/download/:id", verifyToken, controllers.downloadDoc);
+router.get("/download/:id", /*verifyToken,*/ controllers.downloadDoc);
 
 router.post("/rate/:idDocument", verifyToken, controllers.rateDocument);
 router.get("/reports/:idDocument", verifyToken, controllers.getReportsForDocument);
