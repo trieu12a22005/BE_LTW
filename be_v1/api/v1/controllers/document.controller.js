@@ -166,34 +166,50 @@ module.exports.detailDoc = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user.userId)
-
-    const document = await Document.findById(
-      doc_id
-    )
-
-    if ((!document) || (document.check !== "accept" && user.role !== "admin")) {
+    const document = await Document.findById(doc_id);
+    if (!document) {
       return res.status(404).json({
         message: "Không tìm thấy tài liệu"
       });
     }
 
-    // Tăng lượt xem nếu không phải admin hoặc chính chủ
-    if (user._id.toString() !== document.uploadedBy && user.role !== "admin") {
+    // Mặc định: chỉ cho xem tài liệu đã duyệt (check === "accept")
+    let isAdmin = false;
+    let isOwner = false;
+
+    if (req.user && req.user.userId) {
+      const user = await User.findById(req.user.userId);
+      if (user) {
+        isAdmin = user.role === "admin";
+        isOwner = user._id.toString() === document.uploadedBy.toString();
+      }
+    }
+
+    // Nếu không phải admin và tài liệu chưa được duyệt → chặn
+    if (!isAdmin && document.check !== "accept") {
+      return res.status(403).json({
+        message: "Bạn không có quyền xem tài liệu này"
+      });
+    }
+
+    // Tăng lượt xem nếu không phải admin và không phải chính chủ
+    if (!isAdmin && !isOwner) {
       document.views += 1;
       await document.save();
     }
 
     res.status(200).json({
       document
-    })
+    });
+
   } catch (error) {
-    console.error("Lỗi upload file:", error);
+    console.error("Lỗi khi lấy chi tiết tài liệu:", error);
     res.status(500).json({
-      error: "Lỗi"
+      error: "Lỗi server"
     });
   }
-}
+};
+
 module.exports.editDoc = async (req, res) => {
   try {
     const doc_id = req.params.id;
