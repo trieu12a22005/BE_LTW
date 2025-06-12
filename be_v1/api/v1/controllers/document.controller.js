@@ -23,14 +23,14 @@ const upload = multer({
 exports.uploadMiddleware = upload.single("file");
 
 const allowedMIMETypes = [
-  "application/pdf", 
+  "application/pdf",
   "application/vnd.ms-powerpoint",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "image/jpeg", 
-  "image/png", 
-  "image/gif", 
+  "image/jpeg",
+  "image/png",
+  "image/gif",
   "image/webp"
 ];
 
@@ -171,7 +171,7 @@ module.exports.detailDoc = async (req, res) => {
     const document = await Document.findById(
       doc_id
     )
-    
+
     if ((!document) || (document.check !== "accept" && user.role !== "admin")) {
       return res.status(404).json({
         message: "Không tìm thấy tài liệu"
@@ -197,7 +197,7 @@ module.exports.detailDoc = async (req, res) => {
 module.exports.editDoc = async (req, res) => {
   try {
     const doc_id = req.params.id;
-    const user_id = req.body.userId;
+    const user_id = req.user.userId;
     const updateData = req.body;
     const user = await User.findById(
       user_id
@@ -210,16 +210,26 @@ module.exports.editDoc = async (req, res) => {
     const document = await Document.findById(
       doc_id
     )
+
     if (!document) {
       return res.status(404).json({
         message: "Không tìm thấy tài liệu"
       });
     }
+
     if (user.userId !== document.uploadedBy && user.role !== "admin") {
       return res.status(403).json({
         message: "Bạn không có quyền chỉnh sửa tài liệu này"
       })
     }
+
+    // Chỉ admin mới được phép chỉnh sửa trạng thái "check"
+    if (updateData.check && user.role !== "admin") {
+      return res.status(403).json({
+        message: "Bạn không có quyền thay đổi trạng thái tài liệu (check)."
+      });
+    }
+
     const updatedDoc = await Document.findByIdAndUpdate(doc_id, updateData, {
       new: true, // Trả về dữ liệu sau khi cập nhật
       runValidators: true, // Kiểm tra validation của schema
