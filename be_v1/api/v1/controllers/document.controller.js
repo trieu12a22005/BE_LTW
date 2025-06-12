@@ -23,9 +23,15 @@ const upload = multer({
 exports.uploadMiddleware = upload.single("file");
 
 const allowedMIMETypes = [
-  "application/pdf", "application/vnd.ms-powerpoint",
+  "application/pdf", 
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "image/jpeg", "image/png", "image/gif", "image/webp"
+  "image/jpeg", 
+  "image/png", 
+  "image/gif", 
+  "image/webp"
 ];
 
 exports.uploadFile = async (req, res) => {
