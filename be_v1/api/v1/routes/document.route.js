@@ -4,10 +4,13 @@ const verifyToken = require("../../../validate/verifyToken");
 const router = express.Router();
 
 router.post("/upload", verifyToken, controllers.uploadMiddleware, controllers.uploadFile);
+//public
+router.get("", /*verifyToken,*/ controllers.listDocs);
+//public
+router.get("/detail/:id", /*verifyToken,*/ controllers.detailDoc);
 
-router.get("", verifyToken, controllers.listDocs);
+//
 
-router.get("/detail/:id", verifyToken, controllers.detailDoc);
 router.patch("/update/:id", verifyToken, controllers.editDoc);
 router.delete("/delete/:id", verifyToken, controllers.deleteDoc);
 
