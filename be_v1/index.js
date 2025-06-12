@@ -1,13 +1,15 @@
 const express = require('express');
-require("dotenv").config()
+require("dotenv").config();
 const cors = require("cors");
-const bodyParser = require("body-parser")
-const database = require("./config/database")
-const cookiesParser = require("cookie-parser")
+const bodyParser = require("body-parser");
+const database = require("./config/database");
+const cookiesParser = require("cookie-parser");
+
 database.connect();
-const route = require("./api/v1/routes/index.route")
+const route = require("./api/v1/routes/index.route");
+
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 app.use(cors({
     origin: ["http://localhost:5173", "https://u-it-study-share.vercel.app"],
@@ -15,9 +17,15 @@ app.use(cors({
 }));
 
 app.use(cookiesParser());
-//parse application/json
-app.use(bodyParser.json())
-route(app)
+app.use(bodyParser.json());
+
+// Route test
+app.get("/", (req, res) => {
+    res.send("✅ Railway is working!");
+});
+
+route(app);
+
 app.listen(port, () => {
-    console.log(`listen on port ${port}`);
+    console.log(`Server is listening on port ${port}`);
 });
