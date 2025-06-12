@@ -8,14 +8,14 @@ const router =  express.Router()
 
 
 router.post("/register", controllers.register);
-router.post("/login",middlewareLogin, controllers.login);
+router.post("/login" ,middlewareLogin, controllers.login);
 router.post("/password/forgot",controllers.forgotPassword);
 router.post("/password/otp",controllers.otpPassword);
 router.patch("/password/reset",controllers.resetPassword);
 
 //router.use(verifyToken, updateLastActive);
 
-router.get("/detail", /*verifyToken,*/ controllers.detailUser);
+router.get("/detail", verifyToken, controllers.detailUser);
 router.post("/logout", /*verifyToken,*/controllers.logout)
 router.patch("/password/change", verifyToken, controllers.changePassword)
 router.patch("/update", controllers.uploadAvatarMiddleware, verifyToken, controllers.upDateInfo);
