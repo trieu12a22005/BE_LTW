@@ -523,7 +523,7 @@ module.exports.getUserById = async (req, res) => {
     });
 
     if (!userFind) {
-      return req.status(404).json({
+      return res.status(404).json({
         message: "User Id không tồn tại!",
       });
     }

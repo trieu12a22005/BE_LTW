@@ -166,11 +166,7 @@ module.exports.detailDoc = async (req, res) => {
       });
     }
 
-    const document = await Document.findById(doc_id)
-      .populate(
-        "uploadedBy", 
-        "fullName avatar username major university address birthday email"
-      );
+    const document = await Document.findById(doc_id);
     if (!document) {
       return res.status(404).json({
         message: "Không tìm thấy tài liệu"
