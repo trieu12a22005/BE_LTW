@@ -28,11 +28,82 @@ const allowedMIMETypes = [
 ];
 
 // Lấy danh sách posts 
+// exports.getPosts = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user.userId);
+//     let query = {};
+
+//     if (!user || user.role !== "admin") {
+//       query.check = "accept";
+//     }
+
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 9;
+//     const skip = (page - 1) * limit;
+
+//     const [posts, total] = await Promise.all([
+//       Post.find(query).sort({
+//         createdAt: -1
+//       }).skip(skip).limit(limit),
+//       Post.countDocuments(query)
+//     ]);
+
+//     if (total === 0) {
+//       return res.status(404).json({
+//         message: "Không tìm thấy bài viết nào trong hệ thống.",
+//         total: 0,
+//         posts: []
+//       });
+//     }
+
+//     // Tăng views cho các post trong trang này (nếu user không phải admin hoặc chính chủ)
+//     const updateViewsPromises = posts.map(async (post) => {
+//       if (user.role !== "admin" && user.userId !== post.author) {
+//         post.views += 1;
+//         return post.save();
+//       }
+//     });
+//     await Promise.all(updateViewsPromises);
+
+//     const postsWithAuthorNames = await Promise.all(
+//       posts.map(async (post) => {
+//         const author = await User.findById(post.author);
+//         return {
+//           ...post.toObject(),
+//           userNameAuthor: author ? author.username : "Không rõ",
+//           fullNameAuthor: author ? author.fullName : "Không rõ",
+//           avatarAuthor: author ? author.avatar : null,
+//         };
+//       })
+//     );
+
+//     res.status(200).json({
+//       message: `Lấy danh sách bài viết thành công. Tổng số bài viết: ${total}.`,
+//       total,
+//       page,
+//       pages: Math.ceil(total / limit),
+//       //count: posts.length,
+//       count: postsWithAuthorNames.length,
+//       //posts
+//       posts: postsWithAuthorNames
+//     });
+//   } catch (error) {
+//     console.error("Lỗi khi lấy danh sách bài viết:", error);
+//     res.status(500).json({
+//       message: "Lỗi server khi lấy danh sách bài viết",
+//       error: error.message
+//     });
+//   }
+// };
+// phu hop public
 exports.getPosts = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
-    let query = {};
+    let user = null;
+    if (req.user && req.user.userId) {
+      user = await User.findById(req.user.userId);
+    }
 
+    let query = {};
     if (!user || user.role !== "admin") {
       query.check = "accept";
     }
@@ -56,9 +127,8 @@ exports.getPosts = async (req, res) => {
       });
     }
 
-    // Tăng views cho các post trong trang này (nếu user không phải admin hoặc chính chủ)
     const updateViewsPromises = posts.map(async (post) => {
-      if (user.role !== "admin" && user.userId !== post.author) {
+      if (user && user.role !== "admin" && user._id.toString() !== post.author.toString()) {
         post.views += 1;
         return post.save();
       }
@@ -82,11 +152,10 @@ exports.getPosts = async (req, res) => {
       total,
       page,
       pages: Math.ceil(total / limit),
-      //count: posts.length,
       count: postsWithAuthorNames.length,
-      //posts
       posts: postsWithAuthorNames
     });
+
   } catch (error) {
     console.error("Lỗi khi lấy danh sách bài viết:", error);
     res.status(500).json({
@@ -95,6 +164,7 @@ exports.getPosts = async (req, res) => {
     });
   }
 };
+
 
 // Lọc post theo trạng thái check
 exports.getPostByCheck = async (req, res) => {
@@ -420,13 +490,74 @@ exports.addComment = async (req, res) => {
   }
 };
 
+// exports.getPostById = async (req, res) => {
+//   try {
+//     const {
+//       idPost
+//     } = req.params;
+//     const user = await User.findById(req.user.userId)
+
+//     const post = await Post.findById(idPost);
+//     if (!post) {
+//       return res.status(404).json({
+//         message: "Không tìm thấy bài viết"
+//       });
+//     }
+
+//     // Nếu không phải admin hoặc chính chủ → tăng views
+//     if (user.role !== "admin" && user.userId !== post.author) {
+//       post.views += 1;
+//       await post.save();
+//     }
+
+//     const UserAuthor = await User.findById(post.author);
+//     const userNameAuthor = UserAuthor ? UserAuthor.username : "Không rõ";
+//     const fullNameAuthor = UserAuthor ? UserAuthor.fullName : "Không rõ";
+//     const avatarAuthor = UserAuthor ? UserAuthor.avatar : null;
+
+//     // Nếu không phải admin và bài đã bị xoá → ẩn nội dung
+//     if (post.check === "delete" && user.role !== "admin") {
+//       return res.status(200).json({
+//         post: {
+//           _id: post._id,
+//           title: "Bài viết đã bị xoá",
+//           content: "",
+//           category: post.category,
+//           author: post.author,
+//           userNameAuthor,
+//           fullNameAuthor,
+//           avatarAuthor,
+//           check: post.check,
+//           createdAt: post.createdAt,
+//           updatedAt: post.updatedAt
+//         }
+//       });
+//     }
+
+//     // Nếu là admin hoặc bài chưa bị xoá → trả về đầy đủ
+//     res.status(200).json({
+//       post: {
+//         ...post.toObject(),
+//         userNameAuthor,
+//         fullNameAuthor,
+//         avatarAuthor,
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Lỗi khi lấy bài viết theo ID:", error);
+//     res.status(500).json({
+//       message: "Lỗi server khi lấy bài viết",
+//       error: error.message
+//     });
+//   }
+// };
+// phu hop cho public
 exports.getPostById = async (req, res) => {
   try {
     const {
       idPost
     } = req.params;
-    const user = await User.findById(req.user.userId)
-
     const post = await Post.findById(idPost);
     if (!post) {
       return res.status(404).json({
@@ -434,8 +565,28 @@ exports.getPostById = async (req, res) => {
       });
     }
 
-    // Nếu không phải admin hoặc chính chủ → tăng views
-    if (user.role !== "admin" && user.userId !== post.author) {
+    let isAdmin = false;
+    let isOwner = false;
+
+    // Kiểm tra nếu có người dùng đăng nhập
+    let user;
+    if (req.user && req.user.userId) {
+      user = await User.findById(req.user.userId);
+      if (user) {
+        isAdmin = user.role === "admin";
+        isOwner = post.author.toString() === user._id.toString();
+      }
+    }
+
+    // Nếu không phải admin và bài chưa được duyệt → chặn
+    if (!isAdmin && post.check !== "accept") {
+      return res.status(403).json({
+        message: "Bài viết chưa được duyệt hoặc đã bị xoá"
+      });
+    }
+
+    // Nếu không phải admin hoặc chính chủ → tăng view
+    if (!isAdmin && !isOwner) {
       post.views += 1;
       await post.save();
     }
@@ -445,26 +596,6 @@ exports.getPostById = async (req, res) => {
     const fullNameAuthor = UserAuthor ? UserAuthor.fullName : "Không rõ";
     const avatarAuthor = UserAuthor ? UserAuthor.avatar : null;
 
-    // Nếu không phải admin và bài đã bị xoá → ẩn nội dung
-    if (post.check === "delete" && user.role !== "admin") {
-      return res.status(200).json({
-        post: {
-          _id: post._id,
-          title: "Bài viết đã bị xoá",
-          content: "",
-          category: post.category,
-          author: post.author,
-          userNameAuthor,
-          fullNameAuthor,
-          avatarAuthor,
-          check: post.check,
-          createdAt: post.createdAt,
-          updatedAt: post.updatedAt
-        }
-      });
-    }
-
-    // Nếu là admin hoặc bài chưa bị xoá → trả về đầy đủ
     res.status(200).json({
       post: {
         ...post.toObject(),
