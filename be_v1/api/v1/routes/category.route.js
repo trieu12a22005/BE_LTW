@@ -5,14 +5,14 @@ const verifyToken = require("../../../validate/verifyToken")
 const checkAdmin = require("../../../validate/checkAdmin")
 const router =  express.Router()
 
-router.get("", verifyToken, controllers.getAllCategories);
+router.get("", /*verifyToken,*/ controllers.getAllCategories);
 router.post("/create", verifyToken, controllers.createCategory);
 router.patch("/update/:idCategory", verifyToken, controllers.updateCategory);
 router.delete("/delete/:idCategory", verifyToken, controllers.deleteCategory);
 router.patch("/updateByAdmin/:idCategory", checkAdmin, controllers.updateCategoryByAmdin);
 router.delete("/deleteByAdmin/:idCategory", checkAdmin, controllers.deleteCategoryByAdmin);
 
-router.get("/search", verifyToken, controllers.findCategory); //tim theo ten hoac noi dung
-router.get("/:idCategory", verifyToken, controllers.getCategoryById);
+router.get("/search", /*verifyToken,*/ controllers.findCategory); //tim theo ten hoac noi dung
+router.get("/:idCategory", /*verifyToken,*/ controllers.getCategoryById);
 
 module.exports = router;
