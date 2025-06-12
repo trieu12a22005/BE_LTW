@@ -24,5 +24,3 @@ router.patch("/avatar", verifyToken, controllers.uploadAvatarMiddleware, control
 
 module.exports = router;
 
-module.exports = router;
-
