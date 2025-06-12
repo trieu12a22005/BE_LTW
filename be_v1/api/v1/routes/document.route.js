@@ -23,8 +23,8 @@ router.patch("/addComment/:docId", verifyToken, controllers.addComment);
 router.get("/download/:id", /*verifyToken,*/ controllers.downloadDoc);
 
 router.post("/rate/:idDocument", verifyToken, controllers.rateDocument);
-router.get("/reports/:idDocument", verifyToken, controllers.getReportsForDocument);
+router.get("/reports/:idDocument", /*verifyToken,*/ controllers.getReportsForDocument);
 
-router.get("/categories/:idDocument", verifyToken, controllers.getAllCategories);
+router.get("/categories/:idDocument", /*verifyToken,*/ controllers.getAllCategories);
 
 module.exports = router;
