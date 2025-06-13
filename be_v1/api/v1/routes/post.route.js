@@ -6,6 +6,7 @@ const checkAdmin = require("../../../validate/checkAdmin")
 const router = express.Router()
 
 //public /*verifyToken, */
+
 router.get("", /*verifyToken, */ controllers.getPosts);
 router.post("/create", verifyToken, controllers.uploadMiddleware, controllers.createPost);
 router.get("/getByCheck/:status", checkAdmin, controllers.getPostByCheck);
