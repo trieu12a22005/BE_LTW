@@ -59,7 +59,12 @@ const PostsSchema = new mongoose.Schema({
   likesCount: {
     type: Number,
     default: 0
-  }
+  },
+  slug: { // dinh tuyen url
+    type: String,
+    required: true,
+    unique: true
+  },
 }, {
   timestamps: true
 });

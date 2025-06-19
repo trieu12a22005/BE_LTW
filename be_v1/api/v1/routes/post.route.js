@@ -25,6 +25,8 @@ router.get("/categories/:idPost", /*verifyToken, */ controllers.getAllCategories
 router.get("/like/:idPost/allUser", /*verifyToken, */ controllers.getUsersLikePost);
 router.get("/like/:idPost/:idUser", /*verifyToken, */ controllers.checkLikePost);
 
+router.get("/:slug", /*verifyToken,*/ controllers.getPostBySlug);
+
 //router.patch
 
 module.exports = router;

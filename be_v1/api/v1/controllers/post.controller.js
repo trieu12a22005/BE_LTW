@@ -269,12 +269,28 @@ exports.createPost = async (req, res) => {
       }
     }
 
+    //dinh tuyen lai slug:
+    const slugify = (str) =>
+      str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    const createdAt = new Date(); // thời điểm tạo post
+    const dateStr = createdAt.toISOString().split("T")[0]; // yyyy-mm-dd
+    const slug = `${slugify(title)}-${dateStr}`;
+    
     const newPost = new Post({
       title,
       content,
       category: formattedCategory,
       author: userId,
-      media
+      media,
+      slug,
+      createdAt
     });
 
     await newPost.save();
@@ -331,6 +347,18 @@ exports.updatePost = async (req, res) => {
     post.title = title;
     post.content = content;
     post.category = formattedCategory;
+
+    // Cập nhật lại slug theo title mới + ngày tạo cũ
+    const slugify = (str) =>
+      str.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    const createdDateStr = new Date(post.createdAt).toISOString().split("T")[0];
+    post.slug = `${slugify(title)}-${createdDateStr}`;
 
     await post.save();
 
@@ -889,3 +917,61 @@ exports.getUsersLikePost = async (req, res) => {
     });
   }
 }
+
+exports.getPostBySlug = async (req, res) => {
+  try {
+    const {
+      slug
+    } = req.params;
+    const post = await Post.findOne({
+      slug
+    });
+    if (!post) return res.status(404).json({
+      message: "Không tìm thấy bài viết"
+    });
+
+    let isAdmin = false;
+    let isOwner = false;
+
+    // if (req.user ? .userId) {
+    //   const user = await User.findById(req.user.userId);
+    //   if (user) {
+    //     isAdmin = user.role === "admin";
+    //     isOwner = post.author.toString() === user._id.toString();
+    //   }
+    // }
+    if (req.user && req.user.userId) {
+      const user = await User.findById(req.user.userId);
+      if (user) {
+        isAdmin = user.role === "admin";
+        isOwner = user._id.toString() === post.uploadedBy.toString();
+      }
+    }
+
+    if (!isAdmin && post.check !== "accept") {
+      return res.status(403).json({
+        message: "Bài viết chưa được duyệt hoặc đã bị xoá"
+      });
+    }
+
+    if (!isAdmin && !isOwner) {
+      post.views += 1;
+      await post.save();
+    }
+
+    const author = await User.findById(post.author);
+    res.status(200).json({
+      post: {
+        ...post.toObject(),
+        userNameAuthor: author ? author.username : "Không rõ",
+        fullNameAuthor: author ? author.fullName : "Không rõ",
+        avatarAuthor: author ? author.avatar : null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
+    });
+  }
+};

@@ -27,4 +27,6 @@ router.get("/reports/:idDocument", /*verifyToken,*/ controllers.getReportsForDoc
 
 router.get("/categories/:idDocument", /*verifyToken,*/ controllers.getAllCategories);
 
+router.get("/:slug", /*verifyToken,*/ controllers.getDocBySlug);
+
 module.exports = router;

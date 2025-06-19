@@ -105,6 +105,19 @@ exports.uploadFile = async (req, res) => {
       data: publicUrlData
     } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
     const fileUrl = publicUrlData.publicUrl;
+    // them dinh tuyen url:
+    const slugify = (str) =>
+      str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    const createdAt = new Date(); // thời điểm tạo
+    const dateStr = createdAt.toISOString().split("T")[0]; // yyyy-mm-dd
+    const slug = `${slugify(title)}-${dateStr}`;
 
     const document = new Document({
       title,
@@ -113,7 +126,9 @@ exports.uploadFile = async (req, res) => {
       //Subject,  // Thêm nếu schema yêu cầu
       category: categoryArr,
       fileUrl,
-      uploadedBy: user._id
+      uploadedBy: user._id,
+      slug,
+      createdAt
     });
     await document.save();
 
@@ -275,6 +290,19 @@ module.exports.editDoc = async (req, res) => {
         }));
       }
       updateData.category = categoryArr;
+    }
+    if (updateData.title) {
+      const slugify = (str) =>
+        str.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      const createdAt = new Date(updatedDoc.createdAt);
+      const dateStr = createdAt.toISOString().split("T")[0]; // yyyy-mm-dd
+      updatedDoc.slug = `${slugify(updateData.title)}-${dateStr}`;
+      await updatedDoc.save();
     }
     res.json({
       code: 200,
@@ -813,6 +841,59 @@ exports.getAllCategories = async (req, res) => {
     console.error("Lỗi lấy category của document:", error);
     res.status(500).json({
       message: "Lỗi server khi lấy category của document."
+    });
+  }
+};
+
+exports.getDocBySlug = async (req, res) => {
+  try {
+    const {
+      slug
+    } = req.params;
+    const document = await Document.findOne({
+      slug
+    });
+
+    if (!document) return res.status(404).json({
+      message: "Không tìm thấy tài liệu"
+    });
+
+    let isAdmin = false;
+    let isOwner = false;
+
+    // if (req.user ? .userId) {
+    //   const user = await User.findById(req.user.userId);
+    //   if (user) {
+    //     isAdmin = user.role === "admin";
+    //     isOwner = user._id.toString() === document.uploadedBy.toString();
+    //   }
+    // }
+    if (req.user && req.user.userId) {
+      const user = await User.findById(req.user.userId);
+      if (user) {
+        isAdmin = user.role === "admin";
+        isOwner = user._id.toString() === document.uploadedBy.toString();
+      }
+    }
+
+    if (!isAdmin && document.check !== "accept") {
+      return res.status(403).json({
+        message: "Bạn không có quyền xem tài liệu này"
+      });
+    }
+
+    if (!isAdmin && !isOwner) {
+      document.views += 1;
+      await document.save();
+    }
+
+    res.status(200).json({
+      document
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message
     });
   }
 };
