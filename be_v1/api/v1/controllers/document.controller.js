@@ -897,3 +897,24 @@ exports.getDocBySlug = async (req, res) => {
     });
   }
 };
+
+module.exports.detailDocI = async (req, res) => {
+  try {
+    const doc_id = req.params.id;
+
+    const document = await Document.findById(doc_id);
+    if (!document || !document.slug) {
+      return res.status(404).json({
+        message: "Không tìm thấy tài liệu hoặc slug"
+      });
+    }
+
+    // Nếu người dùng đang truy cập bằng ID → redirect về slug
+    return res.redirect(`/api/v1/documents/${document.slug}`);
+  } catch (error) {
+    console.error("Lỗi khi redirect từ ID sang slug:", error);
+    res.status(500).json({
+      message: "Lỗi server khi redirect"
+    });
+  }
+};

@@ -7,7 +7,9 @@ router.post("/upload", verifyToken, controllers.uploadMiddleware, controllers.up
 //public
 router.get("", /*verifyToken,*/ controllers.listDocs);
 //public
-router.get("/detail/:id", /*verifyToken,*/ controllers.detailDoc);
+//router.get("/detail/:id", /*verifyToken,*/ controllers.detailDoc);
+router.get("/detail/:id", /*verifyToken,*/ controllers.detailDocI);
+
 
 router.patch("/update/:id", verifyToken, controllers.editDoc);
 router.delete("/delete/:id", verifyToken, controllers.deleteDoc);
