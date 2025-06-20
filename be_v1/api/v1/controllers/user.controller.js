@@ -611,3 +611,28 @@ exports.uploadAvatar = async (req, res) => {
     });
   }
 };
+
+module.exports.isLogin = (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) {
+      return res.json({
+        isLogin: false
+      });
+    }
+    // Xác minh token
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    if (!decoded || !decoded.userId) {
+      return res.json({
+        isLogin: false
+      });
+    }
+    return res.json({
+      isLogin: true
+    });
+  } catch (error) {
+    return res.json({
+      isLogin: false
+    });
+  }
+};

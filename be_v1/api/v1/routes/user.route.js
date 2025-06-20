@@ -6,6 +6,7 @@ const updateLastActive = require("../../../validate/updateLastActive")
 
 const router =  express.Router()
 
+router.get("/islogin", controllers.isLogin);
 
 router.post("/register", controllers.register);
 router.post("/login", middlewareLogin, controllers.login);
